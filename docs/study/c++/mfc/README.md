@@ -2,11 +2,9 @@ MSDN网址：http://msdn.microsoft.com/en-us/dn308572.aspx
 
 ## MFC
 
-<img src="./MFC.assets/image-20240710102528649.png" alt="image-20240710102528649"  />
-
-![image-20240710102528649](README.assets/image-20240710102528649.png )
 
 
+![](MFC.assets/image-20240710102528649-17230293869391.png)
 
 * MFC是一个大的类库
 * MFC是一个应用程序框架
@@ -20,13 +18,13 @@ win32程序与MFC程序的主要区别在于能不能调用MFC程序，能调用
 
 **vs2022**创建win32程序：
 
-<img src="MFC.assets/image-20240710161246869.png" alt="image-20240710161246869" style="zoom:80%;" />
+![image-20240710161246869](MFC.assets/image-20240710161246869.png)
 
-<img src="MFC.assets/image-20240710104510960.png" alt="image-20240710104510960" style="zoom: 80%;" />
+![image-20240710104510960](MFC.assets/image-20240710104510960.png)
 
 
 
-<img src="MFC.assets/image-20240710163038388.png" alt="image-20240710163038388" style="zoom: 80%;" />
+![image-20240710163038388](MFC.assets/image-20240710163038388.png)
 
 
 
@@ -61,7 +59,7 @@ win32程序与MFC程序的主要区别在于能不能调用MFC程序，能调用
       * **消息的分发**：通过调用DispatchMessage函数，应用程序将消息分发给相应的窗口过程函数（回调函数）进行处理。DispatchMessage函数会根据消息中的窗口句柄找到对应的窗口过程函数，并将消息传递给它。
       * **消息的处理**：窗口过程函数根据消息的类型和需要执行相应的逻辑。处理完消息后，窗口过程函数会返回一个值给Windows，表示消息已被处理。
 
-<img src="MFC.assets/image-20240709162130867.png" alt="image-20240709162130867" style="zoom:80%;" />
+![image-20240709162130867](MFC.assets/image-20240709162130867.png)
 
 具体流程：
 
@@ -79,7 +77,7 @@ int WINAPI WinMain(
 );
 ```
 
-<img src="MFC.assets/image-20240710160850455.png" alt="image-20240710160850455"  />
+![image-20240710160850455](MFC.assets/image-20240710160850455.png)
 
 
 
@@ -97,7 +95,7 @@ MFC中使用消息映射机制(定义和管理消息映射表)必须有两个宏
 	* BEGIN_MESSAGE_MAP()中第一个参数为窗口名称，即为那个窗口扩展消息映射
 	* 第二个参数为基类名称
 
-<img src="MFC.assets/image-20240711111343040.png" alt="image-20240711111343040" style="zoom:80%;" />
+![image-20240711111343040](MFC.assets/image-20240711111343040.png)
 
 **消息映射类型：**
 
@@ -145,7 +143,7 @@ MFC中使用消息映射机制(定义和管理消息映射表)必须有两个宏
 
 ### **1.底层实现**
 
-<img src="MFC.assets/image-20240711104134049.png" alt="image-20240711104134049" style="zoom:80%;" />
+![image-20240711104134049](MFC.assets/image-20240711104134049.png)
 
 **底层**基础实现：**源文件**中创建window.c
 
@@ -287,7 +285,7 @@ int WINAPI WinMain(
 
 ​		新版本在使用MFC版本时可能不匹配，打开VS installer，**不要使用单个组件下载**，选择**使用c++的桌面开发**中的最新版本。
 
-<img src="MFC.assets/image-20240711100106600.png" alt="image-20240711100106600" style="zoom: 80%;" />
+![image-20240711100106600](MFC.assets/image-20240711100106600.png)
 
 
 
@@ -295,9 +293,9 @@ int WINAPI WinMain(
 
 
 
-<img src="MFC.assets/image-20240711105126939.png" alt="image-20240711105126939" style="zoom:80%;" />
+![image-20240711105126939](MFC.assets/image-20240711105126939.png)
 
-<img src="MFC.assets/image-20240711152809600.png" alt="image-20240711152809600" style="zoom:80%;" />
+![image-20240711152809600](MFC.assets/image-20240711152809600.png)
 
 
 
@@ -400,7 +398,7 @@ MFC生成的类有四种：APP,MainFrame,View,Doc
 * View类用于显示
 * Doc用于管理文档
 
-<img src="MFC.assets/image-20240711162016917.png" alt="image-20240711162016917" style="zoom: 80%;" />
+![image-20240711162016917](MFC.assets/image-20240711162016917.png)
 
 四个类的源文件和头文件如下：
 
@@ -443,15 +441,15 @@ void CMFCTEST1View::OnLButtonDown(UINT nFlags, CPoint point)
 
 项目创建：
 
-<img src="MFC.assets/image-20240721101419562.png" alt="image-20240721101419562" style="zoom:80%;" />
+![image-20240721101419562](MFC.assets/image-20240721101419562.png)
 
 对于创建生成的默认界面都在**资源文件**当中，点击.rc文件：
 
-<img src="MFC.assets/image-20240721102233887.png" alt="image-20240721102233887" style="zoom: 50%;" />
+![image-20240721102233887](MFC.assets/image-20240721102233887.png)
 
 点击之后，Dialog即相关窗口，ABOUT为关于对话框，MFCHEIMA1_DIALOG为默认生成对话框：
 
-<img src="MFC.assets/image-20240721102342452.png" alt="image-20240721102342452" style="zoom:50%;" />
+![image-20240721102342452](MFC.assets/image-20240721102342452.png)
 
 对于窗口的更改除了代码也可以直接快捷工具箱（视图->工具箱或者快捷键`Ctrl+Alt+X`）添加：
 
@@ -459,7 +457,7 @@ void CMFCTEST1View::OnLButtonDown(UINT nFlags, CPoint point)
 
 对于控件，左键选中控件，右键点击属性。可在右下角修改**ID、名称**等属性：
 
-<img src="MFC.assets/image-20240721222737880.png" alt="image-20240721222737880"  />
+![image-20240721222737880](MFC.assets/image-20240721222737880.png)
 
 
 
@@ -510,11 +508,11 @@ void CMFCApplication1Dlg::OnBnClickedButton1()
 
 结果：不断的点击按钮将不断的添加ABC：
 
-<img src="MFC.assets/image-20240722093920019.png" alt="image-20240722093920019" style="zoom: 67%;" />
+![image-20240722093920019](MFC.assets/image-20240722093920019.png)
 
 再次添加按钮2与编辑框：点击按钮2将编辑框1的内容给编辑框2
 
-<img src="MFC.assets/image-20240722094335065.png" alt="image-20240722094335065" style="zoom: 67%;" />
+![image-20240722094335065](MFC.assets/image-20240722094335065.png)
 
 **MFCApplicationDlg.h**
 
@@ -557,7 +555,7 @@ void CMFCApplication1Dlg::OnBnClickedButton2()
 }
 ```
 
-<img src="MFC.assets/image-20240722104532389.png" alt="image-20240722104532389" style="zoom:67%;" />
+![image-20240722104532389](MFC.assets/image-20240722104532389.png)
 
 
 
@@ -575,7 +573,7 @@ void CMFCApplication1Dlg::OnBnClickedButton2()
 
 ​				插入两个新窗口：
 
-<img src="MFC.assets/image-20240722105841562.png" alt="image-20240722105841562" style="zoom:67%;" />
+![image-20240722105841562](MFC.assets/image-20240722105841562.png)
 
 ​				新窗口如下：两个窗口分别表示一个模态对话框与非模态对话框
 
@@ -585,11 +583,11 @@ void CMFCApplication1Dlg::OnBnClickedButton2()
 
 ​			右键点击窗口添加类：
 
-<img src="MFC.assets/image-20240722110539778.png" alt="image-20240722110539778" style="zoom:67%;" />
+![image-20240722110539778](MFC.assets/image-20240722110539778.png)
 
 ​			添加MFC类：
 
-<img src="MFC.assets/image-20240722110637360.png" alt="image-20240722110637360" style="zoom:80%;" />
+![image-20240722110637360](MFC.assets/image-20240722110637360.png)
 
 ​			添加好之后会生成关于类的.h与.cpp文件：对于新生成的两个对话框如果需要添加东西则在其文件中添加。
 
@@ -788,3 +786,4 @@ void CMultiBoardSyncGrabDemoDlg::OnBnClickedStartButton() // 假设这是启动�
 * 线程函数 `ThreadProc` 必须是静态的，因为它不能直接访问类的非静态成员。我们通过将对话框实例的指针作为参数传递给线程函数来绕过这个限制。
 * 如果你的线程需要长时间运行或执行耗时的操作，请确保你的UI（用户界面）在此期间仍然响应。这通常意味着你应该避免在UI线程中执行耗时的操作，而是将这些操作放在工作线程中执行。
 * 当你的线程完成其任务时，它将自动结束。但是，你可以通过调用 `CWinThread::PostThreadMessage` 方法来发送消息给对话框，以便在UI线程中处理线程的结果或更新UI。
+
