@@ -2,7 +2,7 @@
 
 ![logo](./src/img/logo.jpg)
 
-# 拼搏的小浣熊 <small>1.0版本</small>
+# 王雷 <small>1.0版本</small>
 
 > 对自己学习进行记录,搭建属于自己的私人知识库
 
