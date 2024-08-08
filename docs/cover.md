@@ -1,8 +1,8 @@
 <!--修改封面在这里改 _coverpage.md -->
 
-![logo](./src/img/logo.jpg)
+![logo](./src/img/wechat.jpg)
 
-# 王雷 <small>1.0版本</small>
+# 王的笔记 <small>V1.0</small>
 
 > 对自己学习进行记录,搭建属于自己的私人知识库
 
