@@ -12,7 +12,7 @@
    * [📁项目](study/project/)
     * [📃FastDFS](study/project/FastDFS/)
     * [📃Sapera Grab Demo二次开发](study/project/Sapera/) 
-      * [📁WORK](study//)
+      * [📁WORK](study/other/)
     * [📃CMake](study/other/cmake/)
     * [📃DLL](study/other/DLL/)
     * [📃图像拼接](study/other/img_os/)
