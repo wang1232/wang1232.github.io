@@ -16,9 +16,9 @@
 
 **SapView：**显示 buffer 中存储的内容至屏幕
 
-## 一、主要问题：
+## 1、前置问题：
 
-**1.文件缺失**
+**1.1 文件缺失**
 
 Grab Demo采用的都是MFC框架，MFC框架封装的功能很多，采用的是消息机制。
 
@@ -36,13 +36,13 @@ SapBufferRoi和SapBufferWithTrash结合使用
 
 **3.保存数据到内存时，CCD拍摄过快，容易漏帧**
 
-**使用多线程**: 你使用多线程来异步处理图像数据。一个线程可以专注于数据捕获，另一个线程处理和存储数据。这样可以减少因数据处理导致的延迟。
+**使用多线程**: 使用多线程来异步处理图像数据。一个线程可以专注于数据捕获，另一个线程处理和存储数据。这样可以减少因数据处理导致的延迟。
 
 
 
 
 
-## 二、开发类
+## 2、开发类
 
 ### 2.1 SapBufferRoi类
 
@@ -176,4 +176,175 @@ int main() {
 在 `.h` 头文件中使用 `class SAPCLASSBASIC_CLASS SapXferContextInfo;` ，**告诉编译器 `SapXferContextInfo` 是一个类，但具体的实现会在动态库的源文件中提供。**
 
 
+
+
+
+
+
+## 3、问题及解决方案
+
+### 3.1、帧率获取
+
+相机通过外部信号进行触发（TTL高电平），每一个高电平都是一帧数据，并通过acq传送给buffer。
+
+**3.1.1 解决方案：**
+
+**1、设置定时器**
+
+* 在 `OnGrab` 中启动定时器，使用 `SetTimer` 函数来创建一个定时器，例如每隔 100 毫秒更新一次帧率：
+
+```c++
+void CMultiBoardSyncGrabDemoDlg::OnGrab() 
+{
+    m_statusWnd.SetWindowText(_T(""));
+
+    if (m_Xfer[0]->Grab() && m_Xfer[1]->Grab())
+    {
+        // 启动定时器，每隔100毫秒触发一次
+        SetTimer(IDT_UPDATE_FRAMERATE, 100, nullptr);
+        .....
+
+        UpdateMenu();    
+    }
+}
+```
+
+* 重写 `OnTimer` 函数以处理定时器消息，并在其中获取并更新帧率：
+
+```c++
+void CMultiBoardSyncGrabDemoDlg::OnTimer(UINT_PTR nIDEvent)
+{
+    if (nIDEvent == IDT_UPDATE_FRAMERATE)
+    {
+        UpdateDisplayFrameRate();
+    }
+
+    CDialogEx::OnTimer(nIDEvent);
+}
+```
+
+* 修改 `UpdateDisplayFrameRate` 函数以获取最新的帧率并更新显示框：
+
+```c++
+void CMultiBoardSyncGrabDemoDlg::UpdateDisplayFrameRate()
+{
+    SapXferFrameRateInfo* pFrameRateInfo = m_Xfer[0]->GetFrameRateStatistics();
+
+    if (pFrameRateInfo)
+    {
+        // 获取实时帧率
+        if (pFrameRateInfo->IsLiveFrameRateAvailable())
+        {
+            int liveFrameRate = pFrameRateInfo->GetLiveFrameRate();
+            CString strFrameCount;
+            strFrameCount.Format(_T("%d"), liveFrameRate);
+            m_editFrameCount.SetWindowText(strFrameCount);
+        }
+    }
+}
+```
+
+* 在对话框销毁时，确保停止定时器：
+
+```c++
+void CMultiBoardSyncGrabDemoDlg::OnDestroy()
+{
+    CDialogEx::OnDestroy();
+    // 停止定时器
+    KillTimer(IDT_UPDATE_FRAMERATE);
+}
+```
+
+* 前置条件
+
+```c++
+BEGIN_MESSAGE_MAP(CMultiBoardSyncGrabDemoDlg, CDialogEx)
+    ON_WM_TIMER()										//添加定时器处理函数
+END_MESSAGE_MAP()
+#define IDT_UPDATE_FRAMERATE  1001 						//头文件中定义定时器 ID
+```
+
+
+
+### 3.2、异步存储
+
+对于存储数据，由于帧率过快，直接存储在数据处理速度小于数据传输速度时容易漏帧，因此采用线程进行异步存储：
+
+```c++
+//线程函数-->保存buffe1数据
+UINT CMultiBoardSyncGrabDemoDlg::ThreadProc(LPVOID lpParam) {
+	CMultiBoardSyncGrabDemoDlg* pDlg = reinterpret_cast<CMultiBoardSyncGrabDemoDlg*>(lpParam);
+		void* pData = nullptr;
+		if (pDlg->m_Buffers[0] && pDlg->m_Buffers[0]->GetAddress(&pData))
+		{
+			int bufferSize = pDlg->m_Buffers[0]->GetWidth() * pDlg->m_Buffers[0]->GetHeight() * pDlg->m_Buffers[0]->GetBytesPerPixel();
+
+			// 将缓冲区数据复制到内存中
+			std::vector<char> data(bufferSize);
+			std::memcpy(data.data(), pData, bufferSize);
+			bufferData[0].push_back(data);
+
+			float pFrameRateInfo = pDlg->m_Buffers[0]->GetFrameRate();
+			float rate = pFrameRateInfo;
+			// 当帧数达到 16384 时，将数据写入文件
+			if (rate == 50)
+			{
+				WriteBuffersToFile(0);
+				rate = 0;
+			}
+	}
+	return 0;
+}
+//保存buffer2数据
+UINT CMultiBoardSyncGrabDemoDlg::ThreadProc2(LPVOID lpParam) {
+	CMultiBoardSyncGrabDemoDlg* pDlg = reinterpret_cast<CMultiBoardSyncGrabDemoDlg*>(lpParam);
+	void* pData = nullptr;
+	if (pDlg->m_Buffers[1] && pDlg->m_Buffers[1]->GetAddress(&pData))
+	{
+		int bufferSize = pDlg->m_Buffers[1]->GetWidth() * pDlg->m_Buffers[1]->GetHeight() * pDlg->m_Buffers[1]->GetBytesPerPixel();
+
+		// 将缓冲区数据复制到内存中
+		std::vector<char> data(bufferSize);
+		std::memcpy(data.data(), pData, bufferSize);
+		bufferData[1].push_back(data);
+		float pFrameRateInfo = pDlg->m_Buffers[1]->GetFrameRate();
+		float rate = pFrameRateInfo;
+		// 当帧数达到 16384 时，将数据写入文件
+		if (rate == 50)
+		{
+			WriteBuffersToFile(1);
+			rate = 0;
+		}
+	}
+	return 0;
+}
+```
+
+调用：
+
+* `AfxBeginThread` 是一个在 Microsoft Foundation Classes (MFC) 库中使用的函数，用于创建一个新的线程.
+* `AfxBeginThread` 通常需要两个参数：
+	1. **线程函数的地址**：这是一个指向函数的指针，该函数定义了线程开始执行时应执行的代码。
+	2. **线程参数**：这是一个可选参数，可以传递给线程函数，用于提供初始化数据或配置信息。
+* **AfxBeginThread创建的线程在默认情况下会自动销毁**。这是因为AfxBeginThread函数在内部创建了一个CWinThread对象，并设置其m_bAutoDelete成员变量为TRUE（默认为自动删除）。当线程执行完毕并退出时，如果m_bAutoDelete为真，则CWinThread对象的析构函数会被调用，进而销毁该对象。
+
+```c++
+//OnGrab中调用线程
+//AfxBeginThread
+void CMultiBoardSyncGrabDemoDlg::OnGrab() 
+{
+   m_statusWnd.SetWindowText(_T(""));
+
+	if( m_Xfer[0]->Grab() && m_Xfer[1]->Grab())
+	{
+		Bufferdata_thread1 = AfxBeginThread(ThreadProc, this);  //启动线程1
+		Bufferdata_thread2 = AfxBeginThread(ThreadProc2, this);  //启动线程1
+		if (Bufferdata_thread1 == NULL) {
+			AfxMessageBox(_T("线程创建失败！"));
+		}
+
+		UpdateMenu();	
+	}
+}
+```
 
