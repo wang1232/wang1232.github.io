@@ -348,3 +348,4 @@ void CMultiBoardSyncGrabDemoDlg::OnGrab()
 }
 ```
 
+![image-20240812102936948](Sapera Grab Demo二次开发.assets/image-20240812102936948.png)
