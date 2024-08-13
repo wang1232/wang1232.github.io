@@ -20,6 +20,13 @@ CMake 是一个项目构建工具，并且是**跨平台**的。关于项目构�
 
 # 2.CMake安装
 
+camke安装前最好安装好qt及其依赖：
+
+```shell
+sudo apt update									# 更新apt安装源	
+sudo apt install qt5-default qtcreator			# 安装Qt组件和Qt Creator
+```
+
 2.1、去官网下载
 
 [Download CMake](https://cmake.org/download/)
@@ -33,16 +40,29 @@ CMake 是一个项目构建工具，并且是**跨平台**的。关于项目构�
 将其复制到/opt目录下
 
 ```shell
-sudo cp cmake-3.29.2-linux-x86_64.tar.gz /opt
+sudo cp cmake-3.30.2.tar.gz /opt
 cd /opt
-sudo tar -zxvf cmake-3.29.2-linux-x86_64.tar.gz
-cd cmake-3.29.2-linux-x86_64/bin
+sudo tar -zxvf cmake-3.30.2.tar.gz
+#编译
+./configure
+make -j4
+sudo make install
+```
+
+configure编译时报错：找不到qt安装的路径
+
+![image-20240812222457907](cmake.assets/image-20240812222457907.png)
+
+```shell
+//解决方案-->设置qt安装路径
+export CMAKE_PREFIX_PATH=/home/wang/Qt5.14.2/Tools/qtcreator
 ```
 
 2.3、创建软连接
 
 ```shell
-sudo ln -s /opt/cmake-3.29.2-linux-x86_64/bin/cmake /usr/bin/cmake
+cd cmake-3.30.2/bin
+sudo ln -s /opt/cmake-3.30.2/bin/cmake /usr/bin/cmake
 ```
 
 2.4、查看安装版本
