@@ -1403,9 +1403,9 @@ sudo nginx -s reload # 修改了nginx的配置文件之后, 需要执行该命�
 
 * mail -> 模块, 处理邮件相关的动作
 
-3、nginx.conf
+**3、nginx.conf**
 
-```python
+```nginx
 user  nobody;			# 启动之后的worker进程属于谁 修改为root
 						# 如果是nobody会错误提示: nginx操作xxx文件时候失败, 原因: Permission denied（没有权限）
     					# 将nobody -> root
@@ -1445,7 +1445,7 @@ http {
         listen       80;							# web服务器监听的端口, http协议的默认端口
         server_name  localhost;						# 对应一个域名, 客户端通过该域名访问服务器
 
-        charset utf-8;							# 字符串编码 koi8-r为俄罗斯编码
+        charset utf-8;								# 字符串编码 koi8-r为俄罗斯编码
 
         #access_log  logs/host.access.log  main;
 
@@ -1463,3 +1463,259 @@ http {
 }
 ```
 
+
+
+#### 4.7、Niginx使用
+
+**静态网页存储目录**
+
+* 默认的存储目录:
+
+	```shell
+	/usr/local/nginx/html
+	```
+
+* 自己新建目录
+
+	```shell
+	应该在 /usr/local/nginx/ 下创建自己的目录
+	mkdir /usr/local/nginx/mydir 
+	```
+
+
+
+**练习**
+
+* 在Nginx服务器上进行网页部署, 实现如下访问:
+* 在/usr/local/nginx/创建新的目录, yundisk用来存储静态网页
+
+
+
+**练习1：**访问地址: http://192.168.80.254/login.html      请求login.html文件
+
+* login.html放到什么位置?  -->yundisk
+
+	```nginx
+	/ -> 服务器的资源根目录 ./usr/local/nginx/yundisk
+	login.html-> 放到yundisk中,yundisk放在nginx下
+	```
+
+![image-20240813153330418](FastDFS.assets/image-20240813153330418.png)
+
+
+
+![image-20240813153345010](FastDFS.assets/image-20240813153345010.png)
+
+* 服务器要处理的动作-->在/usr/local/nginx/conf/nginx.conf中更改
+
+	```nginx
+	# 对应这个请求，服务器要添加一个location
+	location /
+	{ 
+	    # 找一个静态网页
+	    root yundisk; # root代表着资源根目录在哪，相对于/usr/local/nginx/来找
+	    # 当客户端的请求是一个目录, nginx需要找一个默认显示的网页
+	    index index.html index.htm;
+	} 
+	# 配置之后重启nginx
+	sudo nginx -s reload
+	```
+
+* 这里要注意，nginx在reload时，由于pid文件就会随着nginx退出自动被清理掉，因此可能会报错该路径下没有pid文件：
+
+
+![image-20240813150634814](FastDFS.assets/image-20240813150634814.png)
+
+* 因此有两个解决方案：
+
+	* 在该路径下建一个空的pid文件
+
+
+	* 执行以下指令：
+	
+		```shell
+		pkill -9 nginx
+		sudo nginx 
+		sudo nginx -s reload
+		```
+
+
+* 重启nginx之后，链接自己的ip地址，加上loginx.html后缀即可访问loginx.html静态网页
+	* http://192.168.166.130/index.html     --->192.168.166.130是我的虚拟机地址
+
+![image-20240813153119944](FastDFS.assets/image-20240813153119944.png)
+
+**练习2：**访问地址: http://192.168.80.254/hello/reg.html
+
+* hello是什么?
+
+	* 目录   --> 目前还是root yundisk，因此都在yundisk中创建hello目录，把reg.html和static拷贝进去
+
+* reg.html放到哪儿?
+
+	* hello目录中
+
+* 如何添加location
+
+	```nginx
+	location /hello/
+	{
+	    root yundisk;
+	    index xx.html;
+	}
+	```
+
+	启动nginx并访问：http://192.168.166.130/hello/index.html
+	
+	![image-20240813183506769](FastDFS.assets/image-20240813183506769.png)
+	
+	![image-20240813183524484](FastDFS.assets/image-20240813183524484.png)
+
+
+
+**练习3**：访问地址: http://192.168.80.254/upload/ 浏览器显示upload.html
+
+* 直接访问一个目录, 得到一默认网页
+
+	* upload是一个目录, uplaod.html应该再upload目录中
+
+		```nginx
+		ocation /upload/
+		{
+		    root yundisk;
+		    index upload.html;
+		}
+		```
+
+
+
+#### 4.8、反向代理设置
+
+![image-20240813184545601](FastDFS.assets/image-20240813184545601.png)
+
+**准备工作：**
+
+* 1个个客户端
+	* window浏览器
+* 1个反向代理服务器
+	* window作为反向代理服务器
+	* https://nginx.org/ (nginx-windows下载网址)
+* 2个web服务器
+	* ubuntu - wang: 192.168.166.130
+	* kylin-wang:192.168.166.134
+
+windows下启动nginx：
+
+![image-20240813185931981](FastDFS.assets/image-20240813185931981.png)
+
+启动之后访问localhost即可：**localhost/localhost:80**
+
+![image-20240813190120817](FastDFS.assets/image-20240813190120817.png)
+
+**反向代理**：
+
+* 反向代理服务器即将数据通过反向代理服务器发送给其他服务器
+	* 代理一台服务器
+		* 客户端访问ubuntu.com
+			* ubuntu.com作为反向代理服务器并不解析数据，制作转发
+		* 反向代理服务器转发给ubuntu.wang.com地址对应的服务器
+			* ubuntu.wang.com对应192.168.166.130:80服务器地址
+	* 代理第二台服务器同理
+	* 这里为了保证window作为反向代理服务器只有一台，将127.0.0.1分别设置域名ubuntu.com/kylin.com
+
+```nginx
+# 找window上对应的nginx的配置文件 - conf/nginx.conf
+	# 代理几台服务器就需要几个server模块
+		# 客户端访问的url: http://192.168.1.100/login.html
+	# 代理第一台电脑
+    server {
+        listen 80; 				# 客户端访问反向代理服务器时，反向代理服务器监听的端口
+        server_name ubuntu.com; # 客户端访问反向代理服务器, 需要的一个域名
+        location / {
+            # 反向代理服务器转发指令，转发指令/, 前缀http://固定
+            proxy_pass http://ubuntu.wang.com;	# 通过此域名需要找到服务器
+            }
+    }
+    # 因此需要添加一个代理模块来对应服务器ip
+    upstream ubuntu.wang.com
+    {
+        server 192.168.166.130:80;
+    }
+    # 代理第二台电脑
+    server {
+        listen 80; # 客户端访问反向代理服务器, 代理服务器监听的端口
+        server_name kylin.com; # 客户端访问反向代理服务器, 需要一个域名
+        location / {
+            # 反向代理服务器转发指令, http:// 固定
+            proxy_pass http://kylin.wang.com;
+    	}
+    }
+    # 添加一个代理模块
+    upstream kylin.wang.com
+    {
+        server 192.168.166.134:80;
+    }
+```
+
+最终windows下nginx.conf的修改如下：
+
+```nginx
+#user  nobody;
+worker_processes  1;
+events {
+    worker_connections  1024;
+}
+
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+
+    sendfile        on;
+    #tcp_nopush     on;
+
+    #keepalive_timeout  0;
+    keepalive_timeout  65;
+
+    #gzip  on;
+
+	server {
+        	listen 80; 				
+        	server_name ubuntu.com; 
+        	location / {
+            		proxy_pass http://ubuntu.wang.com;
+            	}
+   	 }
+    	upstream ubuntu.wang.com
+    	{
+       	 	server 192.168.166.130:80;
+   	 }
+    	# 代理第二台电脑
+    	server {
+        	listen 80;
+       		server_name kylin.com;
+        	location / {
+            		proxy_pass http://kylin.wang.com;
+    		}
+    	}
+    	# 添加一个代理模块
+    	upstream kylin.wang.com
+    	{
+        	server 192.168.166.134:80;
+    	}
+    }
+```
+
+为了保证本地的ubuntu.com/kylin.com都指向同一ip，本地hosts文件修改：
+
+* 找到c:\windows\system32\drivers\etc\hosts文件
+
+* 末尾加上:
+
+	```
+	127.0.0.1 ubuntu.com
+	127.0.0.1 kylin.com
+	```
+
+这样就能保证为127.0.0.1配置多个域名，最终以windows作为反向代理服务器。
+
+#### **4.9、负载均衡设置**
