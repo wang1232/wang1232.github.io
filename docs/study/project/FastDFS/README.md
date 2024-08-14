@@ -1623,6 +1623,8 @@ windows下启动nginx：
 	* 代理第二台服务器同理
 	* 这里为了保证window作为反向代理服务器只有一台，将127.0.0.1分别设置域名ubuntu.com/kylin.com
 
+![1539680213601](FastDFS.assets/1539680213601.png)
+
 ```nginx
 # 找window上对应的nginx的配置文件 - conf/nginx.conf
 	# 代理几台服务器就需要几个server模块
@@ -1645,15 +1647,20 @@ windows下启动nginx：
     server {
         listen 80; # 客户端访问反向代理服务器, 代理服务器监听的端口
         server_name kylin.com; # 客户端访问反向代理服务器, 需要一个域名
-        location / {
+        location / {  //转发某个请求，最终地址解析出来一个/符号
             # 反向代理服务器转发指令, http:// 固定
-            proxy_pass http://kylin.wang.com;
+            proxy_pass http://kylin.wang.com;  #转发地址kylin.wang.com
     	}
     }
     # 添加一个代理模块
     upstream kylin.wang.com
     {
         server 192.168.166.134:80;
+    }
+    location /
+    {
+        root yundisk;
+        index index.html;
     }
 ```
 
@@ -1718,4 +1725,98 @@ http {
 
 这样就能保证为127.0.0.1配置多个域名，最终以windows作为反向代理服务器。
 
+**注意：**测试时，**保证服务器的nginx和windows的nginx同时启动**，测试才有效
+
+* 服务器的nginx进行事件响应与处理
+* window的nginx仅作为反向代理服务器进行转发
+
+![image-20240814103634052](FastDFS.assets/image-20240814103634052.png)
+
+
+
 #### **4.9、负载均衡设置**
+
+* 负载均衡只需设置一个服务器转发的域名，在代理模块中，服务器域名对应许多服务器地址
+
+* 负责均衡过程：
+
+	* 当通过80端口将请求发送给反向代理服务器，反向代理服务器域名：localhost
+	* 反向代理服务器不处理请求，而是将请求扔给upstream模块
+	* upstream模块中有很多server，反向代理服务器在转发消息时，第一次转发会将消息给第一个server，第二次给第二个server，当只有两个服务器时，第三次转发会将消息给第一个server，实现**自动轮询**
+		* Nginx内部通过轮询算法实现请求的分配。具体实现过程大致如下：
+			* **初始化**：Nginx启动时，会读取配置文件中的`upstream`模块定义，初始化服务器列表，并为每个服务器分配一个初始权重（如果未明确指定，则默认为1）。
+			* **请求处理**：当客户端请求到达Nginx时，Nginx会根据轮询算法从服务器列表中选择一个服务器来处理请求。
+				* 首先，Nginx会遍历服务器列表，根据服务器的当前权重（考虑到可能的权重调整和服务器故障情况）选择当前权重最高的服务器。
+				* 如果所有服务器的当前权重都相同，则按照服务器列表的顺序依次选择。
+			* **权重调整**：在请求处理过程中，Nginx会根据服务器的实际响应情况动态调整服务器的权重。例如，如果某个服务器响应时间较长或频繁失败，Nginx可能会降低其权重，以减少分配给该服务器的请求数量。
+			* **故障处理**：如果Nginx检测到某个服务器出现故障（如连接失败、超时等），则会自动将该服务器从当前轮询中剔除，直到该服务器恢复正常。
+
+	![1539681085862](FastDFS.assets/1539681085862.png)
+
+```nginx
+server {
+    listen 80; # 客户端访问反向代理服务器, 代理服务器监听的端口
+    server_name localhost; # 客户端访问反向代理服务器, 需要一个域名
+    location / {
+        # 反向代理服务器转发指令, http:// 固定的头
+        proxy_pass http://linux.com;
+    }
+    location /hello/ {
+        # 反向代理服务器转发指令, http:// 固定的头
+        proxy_pass http://linux.com;
+    }
+    location /upload/ {
+        # 反向代理服务器转发指令, http:// 固定的头
+        proxy_pass http://linux.com;
+     }
+}
+# 添加一个代理模块
+upstream linux.com
+{
+    server 192.168.166.130:80 weight=1; # weight表示处理权重，权重较低，四次请求处理一次
+    server 192.168.166.134:80 weight=3; # 权重较高，四次请求处理三次
+}
+```
+
+*  转发之后web服务器需要做什么?
+	* 对转发的请求/事件进行处理
+
+```nginx
+# 两台服务器分别进行处理
+# 192.168.166.130
+location /
+{
+    root xxx;
+    index xxx;
+}
+location /hello/
+{
+    root xx;
+    index xxx;
+}
+location /upload/
+{
+    root xxx;
+    index xx;
+}
+# 192.168.166.134
+location /
+{
+    root xxx;
+    index xxx;
+}
+location /hello/
+{
+    root xx;
+    index xxx;
+}
+location /upload/
+{
+    root xxx;
+    index xx;
+}
+```
+
+
+
+### 5、FastCGI
