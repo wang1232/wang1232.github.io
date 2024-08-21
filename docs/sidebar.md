@@ -19,4 +19,6 @@
     * [📃图像拼接2](study/other/img_os2/)
     * [📃麒麟系统](study/other/Kylin/) 
     * [📃PostGresSQL](study/other/postgresql/) 
-    * [📃Git](study/other/git/)   
+    * [📃Git](study/other/git/)
+  * [📁面试](study/interview/)
+    * [📃interview](study/interview/inter/)   
