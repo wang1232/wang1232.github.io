@@ -21,4 +21,4 @@
     * [📃PostGresSQL](study/other/postgresql/) 
     * [📃Git](study/other/git/)
   * [📁面试](study/interview/)
-    * [📃interview](study/interview/inter/)   
+    * [📃interview](study/interview/interview/)   
