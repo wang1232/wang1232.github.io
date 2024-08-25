@@ -296,12 +296,14 @@ storage.conf.sample.
 2.2.1 首先在同目录下复制该文件
 
 > ```shell
-> # sudo storage.conf.sample storage.conf
+> sudo cp storage.conf.sample storage.conf
 > ```
 
 2.2.2 打开该文件并进行修改
 
+> ```shell
 > sudo vim storage.conf
+> ```
 
 其中：
 
@@ -335,12 +337,14 @@ storage.conf.sample.
 1 首先在同目录下复制该文件
 
 > ```shell
-> # sudo client.conf.sample client.conf
+> sudo cp client.conf.sample client.conf
 > ```
 
 2 打开该文件并进行修改
 
+> ```shell
 > sudo vim client.conf
+> ```
 
 其中：
 
@@ -1261,9 +1265,9 @@ int main(){
 # 下载：
     wget http://downloads.sourceforge.net/project/pcre/pcre/8.35/pcre-8.35.tar.gz
 # 解压：
-	bzip2 -d prce-8.40.bz2
+	bzip2 -d prce-8.35.bz2
 # 编译：
-	cd prce-8.40
+	cd prce-8.35
 	./configure
     make 
     make check
@@ -1294,7 +1298,7 @@ int main(){
 # 三个参数=这三个库对应的源码安装目录
 # 根据自己的电脑的库安装包的位置进行指定
 # 链接OpenSSL和Prce和Zlib,这里注意目录全是源码目录而不是安装目录
-	./configure --with-openssl=/home/wang/user_wang/Nginx/openssl/openssl-1.0.1t --with-pcre=/home/wang/user_wang/Nginx/prce/pcre-8.35 --with-zlib=/home/wang/user_wang/Nginx/Zlib/zlib-1.2.11
+	./configure --with-openssl=/home/wang/user_wang/Nginx/openssl/openssl-1.0.1t --with-pcre=/home/wang/user_wang/Nginx/prce/pcre-8.35/pcre-8.35 --with-zlib=/home/wang/user_wang/Nginx/Zlib/zlib-1.2.11
     sudo make 
     make check
     sudo make install
@@ -1494,6 +1498,7 @@ http {
 
 * 在Nginx服务器上进行网页部署, 实现如下访问:
 * 在/usr/local/nginx/创建新的目录, yundisk用来存储静态网页
+* 此时将nginx作为后端服务器而不是代理服务器，每一个请求对应一个location。nginx作为代理服务器需要和fastCGI结合，详细参考第五章FastCGI。
 
 
 
@@ -1822,7 +1827,7 @@ location /upload/
 }
 ```
 
-**总结：**
+#### 4.10 **总结：**
 
 * nginx作为：
 
@@ -1836,6 +1841,1055 @@ location /upload/
 
 ![image-20240820210146473](FastDFS.assets/image-20240820210146473.png)
 
+* **Nginx作为web服务器处理请求**
+
+1. 静态请求 
+
+	> 客户端访问服务器的静态网页, 不涉及任何数据的处理, 如下面的URL:
+
+	```http
+	http://localhsot/login.html
+	```
+
+2. 动态请求
+
+	> 客户端会将数据提交给服务器
+
+	```http
+	# 使用get方式提交数据得到的url
+	http://localhost/login?user=zhang3&passwd=123456&age=12&sex=man
+		- http: 协议
+		- localhost: 域名
+		- /login: 服务器端要处理的指令
+		- ? : 连接符, 后边的内容是客户端给服务器提交的数据
+		- & : 分隔符
+	动态的url如何找服务器端处理的指令?
+	    - 去掉协议
+	    - 去掉域名/IP
+	    - 去掉端口
+	    - 去掉?和它后边的内容
+	    # 如果看到的是请求行, 如何找处理指令?
+	POST /upload/UploadAction HTTP/1.1
+	GET /?username=tom&phone=123&email=hello%40qq.com&date=2018-01-01&sex=male&class=3&rule=on HTTP/1.1
+	1. 找请求行的第二部分
+		- 如果是post, 处理指令就是请求行的第二部分
+		- 如果是get, 处理指令就是请求行的第二部分, ? 以前的内容
+		- 找到只好写一个location
+	```
 
 
-### 5、FastCGI
+
+### 5 FastCGI
+
+#### 5.1 CGI
+
+​		通用网关接口（Common Gateway Interface/CGI）描述了客户端和服务器程序之间传输数据的一种标准，可以 让一个客户端，从网页浏览器向执行在网络服务器上的程序请求数据。CGI 独立于任何语言的，CGI 程序可以用 任何脚本语言或者是完全独立编程语言实现，只要这个语言可以在这个系统上运行。
+
+* CGI是通用网关接口,描述了客户端和服务器程序之间传输数据的一种标准 
+* CGl进程是用来帮助http股务器处理**动态请求**的数据
+* CGl进程会频繁的被服务器创建和销毁
+
+**客户端与服务器通信流程：**
+
+**对于普通服务器：**
+
+1. 客户端与服务器通信：
+	* 当用户在浏览器中输入一个URL或点击一个链接时，浏览器会解析这个URL，并根据其协议部分（如http或https）决定如何发送请求。
+	* **浏览器作为客户端，会向服务器发送一个HTTP请求**，请求中包含URL的其余部分（如主机名、端口、路径和查询字符串）。
+2. 服务器接收请求：
+	* **服务器接收到HTTP请求后，会解析这个请求，包括URL中的各个部分**。
+	* 服务器本身确实**只能解析和处理HTTP请求的格式**，但它可以基于请求的内容（如URL的路径部分）来决定如何响应这个请求。
+3. 服务器与CGI程序交互：
+	* 如果服务器需要处理一些动态内容，它可能会**调用一个CGI程序来处理这些数据**
+	* CGI程序是一个独立的程序，运行在服务器上，可以处理来自服务器的数据，并生成HTML或其他格式的输出，然后**发送回服务器**。
+	* 服务器接收到CGI程序的输出后，会将其作为HTTP响应**发送给客户端**（浏览器）。
+4. 浏览器显示响应：
+	* 浏览器接收到服务器的HTTP响应后，会解析这个响应，并显示其中的内容（如HTML页面）。
+
+![image-20240821103758149](FastDFS.assets/image-20240821103758149.png)
+
+
+
+**对于nginx服务器：**
+
+![image-20240821103939448](FastDFS.assets/image-20240821103939448.png)
+
+`(http://localhost/login?user=zhang3&passwd=123456&age=12&sex=man)`
+
+1. 用户通过浏览器访问服务器, 发送了一个请求, 请求的URL如上
+2. 服务器接收数据, 对接收的数据进行解析
+3. nginx对于一些登录数据不知道如何处理, nginx将数据发送给了CGI程序
+	* 服务器端会创建一个CGI进程
+		* 这里由于服务端创建CGI进程，所以属于父子进程，可以直接使用标准输入和输出
+4. CGI进程执行
+	* 加载配置, 如果有需求加载配置文件获取数据 
+	* 连接其他服务器: 比如数据库（有时候数据库和服务器并不在同一个主机上）
+	* 逻辑处理: 
+	* 得到结果, 将结果发送给服务器 
+	* 退出
+5. 服务器将CGI处理结果发送给客户端
+	* 在服务器端CGI进程会被**频繁的创建销毁**
+	* 服务器开销大, 效率低
+
+
+
+#### 5.2 FastCGI
+
+* 概念
+	* 运行在服务器端的代码,帮助服务器处理客户端提交的动态请求
+	* **快速通用网关接口**（Fast Common Gateway Interface／FastCGI）是通用网关接口（CGI）的改进，描述了客户端 和服务器程序之间传输数据的一种标准。 **FastCGI致力于减少Web服务器与 CGI 程式 之间互动的开销，从而使服务器 可以同时处理更多的Web请求 。**与为每个请求创建一个新的进程不同，FastCGI使用持续的进程来处理 一连串的请求。这些进程由FastCGI进程管理器管理，而不是web服务器。
+	
+* fastCGI与CGI的区别
+
+  * CGI 就是所谓的**短生存期应用程序**，FastCGI 就是所谓的**长生存期应用程序**。
+
+  * FastCGI像是一个常驻(long-live)型的 CGI，它可以一直执行着，不会每次都要花费时间去fork一次
+
+![image-20240821105111463](FastDFS.assets/image-20240821105111463.png)
+
+`http://localhost/login?user=zhang3&passwd=123456&age=12&sex=man`
+
+1.  用户通过浏览器访问服务器, 发送了一个请求, 请求的url如上
+
+2.  nginx服务器接收数据, 对接收的数据进行解析
+
+3. nginx对于一些登录数据不知道如何处理, nginx将数据发送给了fastcgi程序
+
+	* 通过本地套接字（Unix domain socket）
+
+	* 网络套接字通信  (IP socket)
+		* FastCGI进程就是为了服务器端服务
+		* web进程和FastCGI进程之间并没有血缘关系，属于独立的进程，所以需要套接字通信
+
+4. fastCGI程序如何启动
+
+	* 不是由web服务器直接启动
+	* 通过一个fastCGI进程管理器启动
+
+5. fastCGI启动
+
+	* 加载配置 - 可选（数据存储量较小时，可以用配置文件，较大时需要链接数据库）
+	* 连接服务器 - 数据库
+	* 循环处理
+		* 服务器有请求 -> 处理
+			* 将处理结果发送给服务器
+				* 本地套接字通信
+				* 网络套接字通信
+		* 服务器没有请求 -> 阻塞
+
+6. 服务器将fastCGI的处理结果发送给客户端
+
+
+
+#### 5.3 FastCGI安装
+
+* 安装FastCGI
+
+	```shell
+	sudo ./configure
+	sudo make
+		- 编译时一定会报错：fcgio.cpp:50:14: error: 'EOF' was not declared in this scope
+		- 这是因为没有包含对应的头文件:
+			- stdio.h - c
+			- cstdio -> c++
+	find ./ -name fcgio.cpp
+	sudo vi ./libfcgi/fcgio.cpp
+		- 加入 #indlue "stdio.h"
+	sudo make
+	sudo make install
+	```
+
+*  安装spawn-fcgi
+
+	```shell
+	sudo ./configure
+	sudo make
+	sudo make install
+	```
+
+
+
+
+#### 5.4 nginx&FastCGI
+
+* **nginx** 不能像apache那样直接执行外部可执行程序，但nginx可以作为代理服务器，将请求转发给后端服务器， 这也是nginx的主要作用之一。其中nginx就支持FastCGI代理，接收客户端的请求，然后将请求转发给后端fastcgi 进程。
+	* nginx收到的动态请求才会交给fastcgi 进程，静态请求nginx只要有处理程序可以自己处理。
+
+* **fastcgi**进程由FastCGI进程管理器管理，而不是nginx。这样就需要一个FastCGI管理，管理 我们编写fastcgi程序。我们使用spawn-fcgi作为FastCGI进程管理器。
+	* fastCGl是为Nginx服务器服务的,用来处理客户端提交的数据，
+	* 客户数据首先发送数据给web服务器。再发送给fastGCI
+
+* **spawn-fcgi**是一个通用的FastCGI进程管理器，简单小巧，原先是属于lighttpd的一部分，后来由于使用比较广 泛，所以就迁移出来作为独立项目了。spawn-fcgi使用pre-fork 模型， 功能主要是打开监听端口，绑定地址，然 后fork-and-exec创建我们编写的fastcgi应用程序进程，退出完成工作 。fastcgi应用程序初始化，然后进入死循环 侦听socket的连接请求。
+
+![image-20240821160356628](FastDFS.assets/image-20240821160356628.png)
+
+
+
+`http://localhost/login?user=zhang3&passwd=123456&age=12&sex=man`
+
+* 点击url，客户端开始访问，发送请求
+* nginx接收请求，而nginx无法处理请求，发送数据给在spawn-fcgi
+* spawn-fcgi - 通信过程中的服务器角色
+	* 被动接收数据
+	* 在spawn-fcgi启动的时候给其绑定IP和端口
+*  fastCGI程序
+	* 假设程序猿写了一个登录程序 login.c ，然后将login.c 编译为可执行程序( login )
+	* 使用 spawn-fcgi 进程管理器启动 login 程序, 得到一进程（fastCGI进程）
+	* 此时，spawn-fcgi 进程和fastCGI进程是父子进程
+	* nginx发送数据给spawn-fcgi ，而spawn-fcgi 发送给fastCGI，然后去处理数据
+	* fastCGI去处理请求，处理完成，由fastCGI进程直接`回应请求`给nginx不经过spawn-fcgi
+
+
+
+#### 5.5 nginx数据转发
+
+* **nginx配合fastcgi数据转发流程**：
+	* 假设程序猿写了一个登录程序login.c ，然后将login.c 编译为可执行程序( login)
+	* 使用 spawn-fcgi 进程管理器启动 login 程序, 得到一进程（fastCGI进程），也就是说login就是处理请求的fastCGI进程
+	* 此时，spawn-fcgi 进程和fastCGI进程是父子进程，spawn-fcgi 进程启动时会捎带启动fastCGI进程
+	* nginx不处理请求，然后转发数据给spawn-fcgi ，而spawn-fcgi 发送给fastCGI，然后fastCGI进程去处理数据
+		* nginx需要**分析出客户端请求对应的指令**，提前**配置请求对应的locaton**，包括转发地址和包含fastCGI配置文件
+		* sapwn-fcgi启动，sapwn-fcgi需要绑定地址和端口，和nginx转发地址(fastcgi_pass)保证一致
+		* fastcgi程序编写
+			* 首先需要接收服务器发送来的数据
+			* 对接收的数据进行处理
+			* 再将数据发送给web服务器
+	* fastCGI处理完成请求，由fastCGI进程直接`回应请求`给nginx不再经过spawn-fcgi
+
+1. **nginx转发：**
+
+	* nginx作为代理服务器的数据转发 - 需要修改nginx的配置文件 nginx.conf
+
+	```nginx
+	通过请求的url http://localhost/login?user=zhang3&passwd=123456&age=12&sex=man 转换为一个
+	指令:
+	    - 去掉协议
+	    - 去掉域名/IP + 端口
+	    - 如果尾部有文件名 去掉
+	    - 去掉 ? + 后边的字符串
+	    - 剩下的就是服务器要处理的指令: /login
+	 location /login
+	{
+	    # 转发这个数据给fastCGI进程
+	    fastcgi_pass 地址信息:端口;
+	    include fastcgi.conf;
+	    # fastcgi.conf应和nginx.conf在同一级目录: /usr/local/nginx/conf
+	    # 这个文件中定义了一些http通信的时候用到环境变量, nginx对其进行初始化
+	}
+	地址信息:
+	    - localhost   一般nginx和fastcgi程序会部署再同一台电脑上，在本机的传输效率最高，用localhost即可。
+	    - 127.0.0.1
+	    - 192.168.1.100
+	端口: 找一个空闲的没有被占用的端口即可
+	
+	```
+
+![image-20240821164345399](FastDFS.assets/image-20240821164345399.png)
+
+2. **sapwn-fcgi启动**
+
+	```shell
+	# 前提条件: 程序猿的fastCGI程序已经编写完毕 -> 可执行文件 login
+	spawn-fcgi -a IP地址 -p 端口 -f fastcgi可执行程序
+	    - IP地址: 应该和nginx的fastcgi_pass配置项对应
+	        - nginx: localhost -> IP: 127.0.0.1
+	        - nginx: 127.0.0.1 -> IP: 127.0.0.1
+	        - nginx: 192.168.1.100 -> IP: 192.168.1.100
+		- 端口:
+			- 应该和nginx的fastcgi_pass中的端口一致
+	```
+
+3. **FastCGI接口与Web服务器交互**
+
+	* 配置文件目录：`/home/user_wang/FastCGI/fcgi-2.4.1-SNAP-0910052249/examples/echo.c`（找到自己的安装目录）
+		* 文件中通过getchar和putchar来获取和发送数据，而getchar和puchar函数看似是操作的终端，其实内部操作的文件描述符直接和niginx进行通信
+			* 当Web服务器（如Nginx）接收到一个请求，并且这个请求需要由FastCGI应用处理时，Nginx会根据其配置（如`fastcgi_pass`指令）将请求转发给FastCGI进程管理器
+			* FastCGI进程管理器负责维护一个或多个FastCGI应用程序进程的池。当Web服务器转发请求时，管理器会选择一个空闲的FastCGI应用程序进程来处理这个请求。
+			* FastCGI应用程序（如你的`echo.c`示例）通过标准输入（stdin）和标准输出（stdout）与Web服务器进行通信。尽管这些操作在应用程序中可能看起来像是文件I/O操作（如使用`getchar`和`putchar`），但实际上它们是通过FastCGI协议与Web服务器交互的（**重定向**）。
+				* **`getchar`和`putchar`函数的输入输出已经被重定向，在底层涉及到文件描述符的操作**
+	
+			* 当FastCGI应用程序处理完请求后，它会将结果写入标准输出。Web服务器会从FastCGI应用程序的标准输出中读取响应数据，并将其发送回客户端（如浏览器）。
+	
+	
+	![image-20240821204549090](FastDFS.assets/image-20240821204549090.png)
+	
+	* FastCGI程序编写流程
+		* 包含头文件：fcgi_stdio.h/fcgi_config.h/unistd.h
+		* 循环处理
+			* 如果nginx没有发送请求--》阻塞
+			* 如果nginx有发送请求--->解除阻塞
+				* 1 接收数据
+					* 1.1 用户按照get方式提交数据
+						* 数据在请求行的第二段（url）--->获取数据：`QUERY_STRING`宏
+	
+					* 1.2 用户按照post方式提交数据
+						* 先获取数据长度:`CONTENT_LENGTH`宏，根据数据长度判断是否循环处理（太长了一次只能取一小段）
+	
+				* 2 按照业务流程处理请求
+				* 3 将数据结果发送给nginx
+	
+	
+	```c
+	http://localhost/login?user=zhang3&passwd=123456&age=12&sex=man
+	// home/wang/user_wang/FastCGI/fcgi-2.4.1-SNAP-0910052249/examples/echo.c
+	// 要包含的头文件
+	#include "fcgi_config.h"	// 可选
+	#include "fcgi_stdio.h"   // 必须的, 编译的时候找不到这个头文件, 先find找到path , 然后gcc -I -path
+	
+	// 编写代码的流程
+	int main ()
+	{
+		// FCGI_Accept()是一个阻塞函数, nginx给fastcgi程序发送数据的时候解除阻塞
+	    while (FCGI_Accept() >= 0) {
+	        // 1. 接收数据
+			// 1.1 get方式提交数据 - 数据在请求行的第二部分
+			// user=zhang3&passwd=123456&age=12&sex=man
+	        char *text = getenv("QUERY_STRING");
+	        // 1.2 post方式提交数据：http采用post方式提交数据时才会有content-length，get方法没有content-length
+	        char *contentLength = getenv("CONTENT_LENGTH");  //getenv:LINUX函数，用来获取环境变量
+	        int len;
+	        // 根据长度大小判断是否需要循环
+	        // 2. 按照业务流程进行处理
+	        // 3. 将处理结果发送给nginx
+	        // 数据回发的时候, 需要告诉nginx处理结果的格式 - 假设是html格式
+			printf("Content-type: text/html\r\n");
+			printf("<html>处理结果</html>");
+	
+	        if (contentLength != NULL) {
+	            len = strtol(contentLength, NULL, 10);	//转换contentLength（格式必须为字符串）为10进制
+	        }
+	        else {
+	            len = 0;
+	        }
+	
+	        if (len <= 0) {
+		    printf("No data from standard input.<p>\n");
+	        }
+	        else {
+	            int i, ch;
+	
+		    printf("Standard input:<br>\n<pre>\n");
+	            // fread(buf,stdin)
+	            for (i = 0; i < len; i++) {
+	                if ((ch = getchar()) < 0) {  	// 接收数据：getchar从函数上看操作的是终端，其实这里已经进行了重定向
+	                    printf("Error: Not enough bytes received on standard input<p>\n");
+	                    break;
+					}
+	                putchar(ch);					// 发送数据
+	            }
+	        }
+	    } /* while */
+	    return 0;
+	}
+	```
+	
+
+fastCGI环境变量 - fastcgi.conf：
+
+| 环境变量           | 说明                                           |
+| ------------------ | ---------------------------------------------- |
+| SCRIPT_FILENAME    | 脚本文件请求的路径                             |
+| **QUERY_STRING**   | 请求的参数;如?app=123                          |
+| **REQUEST_METHOD** | 请求的动作(GET,POST)                           |
+| **CONTENT_TYPE**   | 请求头中的Content-Type字段                     |
+| **CONTENT_LENGTH** | 请求头中的Content-length字段                   |
+| SCRIPT_NAME        | 脚本名称                                       |
+| REQUEST_URI        | 请求的地址不带参数                             |
+| DOCUMENT_URI       | 与$uri相同                                     |
+| DOCUMENT_ROOT      | 网站的根目录。在server配置中root指令中指定的值 |
+| SERVER_PROTOCOL    | 请求使用的协议，通常是HTTP/1.0或HTTP/1.1       |
+| GATEWAY_INTERFACE  | cgi 版本                                       |
+| SERVER_SOFTWARE    | nginx 版本号，可修改、隐藏                     |
+| REMOTE_ADDR        | 客户端IP                                       |
+| REMOTE_PORT        | 客户端端口                                     |
+| SERVER_ADDR        | 服务器IP地址                                   |
+| SERVER_PORT        | 服务器端口                                     |
+| SERVER_NAME        | 服务器名，域名在server配置中指定的server_name  |
+
+1. 客户端使用Post提交数据常用方式
+
+	> - Http协议规定 POST 提交的数据必须放在消息主体（entity-body）中，但协议并没有规定数据必须使用什么编码方式。
+	>
+	> - 开发者完全可以自己决定消息主体的格式
+	>
+	> - 数据发送出去，还要服务端解析成功才有意义, 服务端通常是根据请求头（headers）中的 
+	>
+	> 	Content-Type 字段来获知请求中的消息主体是用何种方式编码，再对主体进行解析。
+
+	常用的四种方式
+
+	- **application/x-www-form-urlencoded**
+
+		```http
+		# 请求行
+		POST http://www.example.com HTTP/1.1
+		# 请求头
+		Content-Type: application/x-www-form-urlencoded;charset=utf-8
+		# 空行
+		# 请求数据(向服务器提交的数据)
+		title=test&user=kevin&passwd=32222
+		```
+
+	- **application/json**
+
+		```http
+		POST / HTTP/1.1
+		Content-Type: application/json;charset=utf-8
+		{"title":"test","sub":[1,2,3]}
+		```
+
+	- **text/xml**
+
+		```http
+		POST / HTTP/1.1
+		Content-Type: text/xml
+		<?xml version="1.0" encoding="utf8"?>
+		<methodcall>
+		    <methodname color="red">examples.getStateName</methodname>
+		    <params>
+		    	<value><i4>41</i4></value>
+		    </params>
+		</methodcall>
+		
+		<font color="red">nihao, shijie</font>
+		```
+
+	- multipart/form-data
+
+		```http
+		POST / HTTP/1.1
+		Content-Type: multipart/form-data
+		# 发送的数据
+		------WebKitFormBoundaryPpL3BfPQ4cHShsBz \r\n
+		Content-Disposition: form-data; name="file"; filename="qw.png"
+		Content-Type: image/png\r\n; md5="xxxxxxxxxx"
+		\r\n
+		.............文件内容................
+		.............文件内容................
+		------WebKitFormBoundaryPpL3BfPQ4cHShsBz--
+		Content-Disposition: form-data; name="file"; filename="qw.png"
+		Content-Type: image/png\r\n; md5="xxxxxxxxxx"
+		\r\n
+		.............文件内容................
+		.............文件内容................
+		------WebKitFormBoundaryPpL3BfPQ4cHShsBz--
+		```
+
+2. strtol 函数使用
+
+	```c
+	// 将数字类型的字符串 -> 整形数
+	long int strtol(const char *nptr, char **endptr, int base);
+		- 参数nptr: 要转换的字符串 - 数字类型的字符串: "123", "0x12", "0776"
+		- 参数endptr: 测试时候使用, 一般指定为NULL
+		- 参数base: 进制的指定
+			- 10 , nptr = "123456", 如果是"0x12"就会出错
+	        - 8  , nptr = "0345"
+	        - 16,  nptr = "0x1ff"
+	
+	char* p = "123abc";
+	char* pt = NULL;
+	strtol(p, &pt, 10);
+	 - 打印pt的值: "abc"
+	```
+
+	
+
+#### 5.6 http协议
+
+1. 请求消息(Request)  - 客户端(浏览器)发送给服务器的数据格式
+
+	> 四部分: 请求行, 请求头, 空行, 请求数据 
+	>
+	> - 请求行: 说明请求类型, 要访问的资源, 以及使用的http版本
+	> - 请求头: 说明服务器要使用的附加信息
+	> - 空行: 空行是必须要有的, 即使没有请求数据
+	> - 请求数据: 也叫主体, 可以添加任意的其他数据
+
+	- Get方式提交数据
+
+		> 第一行: 请求行
+		>
+		> 第2-9行:   请求头(键值对)
+		>
+		> 第10行: 空行
+		>
+		> get方式提交数据, 没有第四部分, 提交的数据在请求行的第二部分, 提交的数据会全部显示在地址栏中
+
+		```http
+		GET /?username=tom&phone=123&email=hello%40qq.com&date=2018-01-01&sex=male&class=3&rule=on HTTP/1.1
+		Host: 192.168.26.52:6789
+		Connection: keep-alive
+		Cache-Control: max-age=0
+		Upgrade-Insecure-Requests: 1
+		User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.67 Safari/537.36
+		Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8
+		Accept-Encoding: gzip, deflate
+		Accept-Language: zh,zh-CN;q=0.9,en;q=0.8
+		
+		```
+
+	- Post方式提交数据
+
+		> 第一行: 请求行
+		>
+		> 第2 -12行: 请求头 (键值对)
+		>
+		> 第13行: 空行
+		>
+		> 第14行: 提交的数据
+
+		```http
+		POST / HTTP/1.1
+		Host: 192.168.26.52:6789
+		Connection: keep-alive
+		Content-Length: 84
+		Cache-Control: max-age=0
+		Upgrade-Insecure-Requests: 1
+		Origin: null
+		Content-Type: application/x-www-form-urlencoded
+		User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.67 Safari/537.36
+		Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8
+		Accept-Encoding: gzip, deflate
+		Accept-Language: zh,zh-CN;q=0.9,en;q=0.8
+		
+		username=tom&phone=123&email=hello%40qq.com&date=2018-01-01&sex=male&class=3&rule=on
+		```
+
+2. 响应消息(Response) -> 服务器给客户端发送的数据
+
+	> - 四部分: 状态行, 消息报头, 空行, 响应正文
+	> 	- 状态行: 包括http协议版本号, 状态码, 状态信息
+	> 	- 消息报头: 说明客户端要使用的一些附加信息
+	> 	- 空行: 空行是必须要有的
+	> 	- 响应正文: 服务器返回给客户端的文本信息
+	>
+	> 第一行:状态行
+	>
+	> 第2 -11行: 响应头(消息报头)
+	>
+	> 第12行: 空行
+	>
+	> 第13-18行: 服务器给客户端回复的数据
+
+	```http
+	HTTP/1.1 200 Ok
+	Server: micro_httpd
+	Date: Fri, 18 Jul 2014 14:34:26 GMT
+	/* 告诉浏览器发送的数据是什么类型 */
+	Content-Type: text/plain; charset=iso-8859-1 (必选项)
+	/* 发送的数据的长度 */
+	Content-Length: 32  
+	Location:url
+	Content-Language: zh-CN
+	Last-Modified: Fri, 18 Jul 2014 08:36:36 GMT
+	Connection: close
+	
+	#include <stdio.h>
+	int main(void)
+	{
+	    printf("hello world!\n");
+	    return 0;
+	}
+	```
+
+3. http状态码
+
+	> 状态代码有三位数字组成，第一个数字定义了响应的类别，共分五种类别:
+	>
+	> - 1xx：指示信息--表示请求已接收，继续处理
+	> - 2xx：成功--表示请求已被成功接收、理解、接受
+	> - 3xx：重定向--要完成请求必须进行更进一步的操作
+	> - 4xx：客户端错误--请求有语法错误或请求无法实现
+	> - 5xx：服务器端错误--服务器未能实现合法的请求
+
+
+
+
+
+#### 5.7 部署
+
+**5.7.1 静态网页部署：**
+
+* 静态网页部署：首先将静态网页全部复制进：`usr/local/nginx/`中，和html同级
+
+	![image-20240822111230948](FastDFS.assets/image-20240822111230948.png)
+
+	zyFile2中包含以下静态文件：
+
+	![image-20240822111355577](FastDFS.assets/image-20240822111355577.png)
+
+* 更改配置文件：`usr/local/nginx/conf/nginx.conf`
+
+	```nginx
+	loaction / {
+		root zyFile2;
+		index index.html;
+	}
+	```
+
+* 访问`192.168.166.130/demo.html`（我的虚拟机地址/要访问的静态网页）
+
+	![image-20240823092702022](FastDFS.assets/image-20240823092702022.png)
+
+* 当点击上传后会出现上传失败404
+	* 此时打开` /usr/local/nginx/logs/error.log`错误日志
+	* 能看到，此时采用的POST提交方式，
+
+![image-20240823092902411](FastDFS.assets/image-20240823092902411.png)
+
+* 打开访问的demo.html：其中`/upload/UploadAction`对应上传目录，`HTTP 1.1`对用http版本
+
+```html
+<script type="text/javascript">
+			$(function(){
+				// 初始化插件
+				$("#zyupload").zyUpload({
+					width            :   "650px",                 // 宽度
+					height           :   "400px",                 // 宽度
+					itemWidth        :   "140px",                 // 文件项的宽度
+					itemHeight       :   "115px",                 // 文件项的高度
+					url              :   "/upload/UploadAction",  // 上传文件的路径
+					fileType         :   ["jpg","png","txt","js","exe"],// 上传文件的类型
+					fileSize         :   51200000,                // 上传文件的大小
+					multiple         :   true,                    // 是否可以多个文件上传
+					dragDrop         :   true,                    // 是否可以拖动上传文件
+					tailor           :   true,                    // 是否可以裁剪图片
+					del              :   true,                    // 是否可以删除文件
+					finishDel        :   false,  				  // 是否在上传文件完成后删除预览
+```
+
+* 如果嫌弃/upload/UploadAction太长，也可以修改，但是同时也得修改nginx.conf
+
+	```nginx
+	#demo.html：修改上传路径
+	url              :   "/Myupload/",  #上传文件的路径
+	
+	#nginx.conf：添加该路径转发
+	location /Myupload{ 
+		fastcgi_pass 127.0.0.1:10000;
+	    include fastcgi.conf;
+	}
+	
+	#不修改上传路径的话在nginx.conf添加：
+	        location /upload/UploadAction/
+	        {
+	                fastcgi_pass 127.0.0.1:10000;
+	                include fastcgi.conf;
+	        }
+	添加完成后重启nginx
+	```
+
+**5.7.2 开始编译**
+
+网页部署完毕，且nginx.conf对应事件(location)添加完成即可开始编译部署
+
+编译所需动态文件：
+
+```nginx
+find ./ -name "lib*.so"
+	./libfcgi/.libs/libfcgi++.so
+	./libfcgi/.libs/libfc
+```
+
+1. 首先将`home/wang/user_wang/FastCGI/fcgi-2.4.1-SNAP-0910052249/examples/echo.c`生成可执行文件
+
+```shell
+sudo chmod -R 777 fcgi-2.4.1-SNAP-0910052249
+gcc echo.c -o app -lfcgi
+ldd app   # 查看可执行文件运行所需要的动态库
+```
+
+如果ldd报错找不到：
+
+![image-20240823102227449](FastDFS.assets/image-20240823102227449.png)
+
+```shell
+# 寻找libfcgi.so
+sudo find / -name "libfcgi.so"
+	- /usr/local/lib/libfcgi.so
+# 启动时链接libfcgi.so
+sudo vi /etc/ld.so.conf   		
+# 将 /usr/local/lib 路径复制进如这个文件
+sudo ldconfig 	# 复制完成后执行该命令
+```
+
+![image-20240823102946650](FastDFS.assets/image-20240823102946650.png)
+
+执行完以上命令，再次查看`ldd app`
+
+![image-20240823103202425](FastDFS.assets/image-20240823103202425.png)
+
+2. 利用进程管理器spawn-fcgi启动app
+
+	```shell
+	spawn-fcgi -a 127.0.0.1 -p 10000 -f ./app		
+	```
+
+	启动成功会显示子进程PID：
+
+	![image-20240823104522008](FastDFS.assets/image-20240823104522008.png)
+
+此时重新上传便会有返回值（一系列环境变量），不在报错404，此时部署成功。但是还没有正经的上传逻辑
+
+![image-20240823104754574](FastDFS.assets/image-20240823104754574.png)
+
+而对于下面的返回值，get提交方法和post提交方法的返回值也略有不同。
+
+
+
+### 6 Nginx+FastDFS
+
+#### 6.1 文件上传下载流程
+
+* **上传：**
+	* 客户端首先上传文件
+	* nginx服务器会将文件发送给本地fastcgi程序
+	* fastcgi会循环读文件，每循环读一次数据，会将读到的数据写入磁盘
+		* 后端的分布式文件系统（fastDFS）包含追踪器、存储节点，对于分布式文件系统，此时的客户端是fastcgi
+	* fastcgi通过获取分布式文件系统的磁盘信息，将本地磁盘的数据上传到fastDFS的存储节点
+		* fastcgi首先向tracker发起连接请求，tracker查询可用节点（storage），有可用节点将查询结果（节点IP/post）返回给fastcgi，fastcgi得到结果开始上传
+		* 上传完毕后节点会生成文件ID，并在保存进本地磁盘后将FileID返回给fastcgi
+		* fastcgi链接数据库将FileID和数据存入数据库
+	* 存入数据库后，删除nginx服务器本地磁盘的文件数据
+
+
+
+![1535275371466](FastDFS.assets/1535275371466.png)
+
+**下载：**
+
+![image-20240823151640904](FastDFS.assets/image-20240823151640904.png)
+
+**优化**：
+
+下载优化思路:
+
+* 直接让客户端连接fastDFS的存储节点, 实现文件下载
+	* 举例, 访问一个url直接下载:<http://192.168.247.147/group1/M00/00/00/wKj3k1tMBKuARhwBAAvea_OGt2M471.jpg> 
+
+![1535275468424](FastDFS.assets/1535275468424.png)
+
+1. 客户端发送请求使用的协议: http
+	* fastDFS能不能解析http协议
+2. 客户端怎么知道文件就存储在对应的那个存储节点上?
+	* 上传的时候将fileID和存储节点IP地址都存储在数据库，那么通过fileID便可以知道存储节点的IP地址
+	* 上传的动作是nginx服务器的fastcgi程序做的，所以其有fileID，因此客户端只需要链接nginx服务器让其调用fastcgi来查询数据库即可，最终将存储节点的IP地址返回给客户端
+3. 客户端得到存储节点的IP地址，重新发起连接
+	* fastDFS存储节点并不能解析http请求，只有nginx可以，因此**需要在nginx安装fastDFS插件**，这样nginx就可以和fastDFS进行通信
+
+
+
+#### 6.2 nginx&fastDFS整合
+
+##### **6.2.1 安装fastdfs-nginx-module_v1.16**
+
+1. 在存储节点上安装Nginx，将软件安装包拷贝到fastDFS存储节点对应的主机上
+
+```shell
+# 1. 找fastDFS的存储节点
+# 2. 在存储节点对应的主机上安装Nginx, 安装的时候需要一并将插件装上
+#	- (余庆提供插件的代码   +   nginx的源代码 ) * 交叉编译 = Nginx  
+```
+
+2. 在存储节点对应的主机上安装Nginx, 作为web服务器
+
+```shell
+- fastdfs-nginx-module_v1.16.tar.gz 解压缩
+# 1. 进入nginx的源码安装目录(自己下载源码解压安装的地方不是usr/local下面的)
+cd /home/wang/user_wang/Nginx/nginx/nginx-1.10.1
+# 2. 检测环境, 生成makefile
+# ./configure --add-module=fastdfs插件的源码目录/src
+./configure --add-module=/home/wang/user_wang/nginx_fastdfs/fastdfs-nginx-module_v1.16/fastdfs-nginx-module/src
+# 同时还得安装依赖
+./configure --add-module=/home/wang/user_wang/nginx_fastdfs/fastdfs-nginx-module_v1.16/fastdfs-nginx-module/src --with-openssl=/home/wang/user_wang/Nginx/openssl/openssl-1.0.1t --with-pcre=/home/wang/user_wang/Nginx/prce/pcre-8.35/pcre-8.35 --with-zlib=/home/wang/user_wang/Nginx/Zlib/zlib-1.2.11
+make
+sudo make install
+```
+
+make过程中的错误:
+
+![image-20240823155557449](FastDFS.assets/image-20240823155557449.png)
+
+```shell
+# 解决方案
+# 寻找fdfs_define.h
+find / -name "fdfs_define.h"
+	- /usr/include/fastdfs/fdfs_define.h  # 寻找到的路径
+find / -name "common_define.h"	
+	- /usr/include/fastcommon/common_define.h
+# 打开此路径下得Makefile文件
+vi objs/Makefile
+如下图加入两个文件的搜索路径，并将CFLAGS中的-Werror去掉
+```
+
+![image-20240823161713389](FastDFS.assets/image-20240823161713389.png)
+
+安装成功, 启动Nginx, 发现没有 worker进程
+
+```shell
+robin@OS:/usr/local/nginx/sbin$ ps aux|grep nginx
+root      65111  0.0  0.0  39200   696 ?Ss   10:32   0:00 nginx: master process ./nginx
+robin     65114  0.0  0.0  16272   928 pts/9  S+   10:32   0:00 grep --color=auto nginx
+```
+
+解决方案：
+
+* 将`fastdfs-nginx-module_v1.16`下src中的mod_fastdfs.conf拷贝到 etc/fdfs
+
+```shell
+sudo cp mod_fastdfs.conf /etc/fdfs
+```
+
+![image-20240823162653240](FastDFS.assets/image-20240823162653240.png)
+
+* 修改mod_fdfs.conf文件, 参考当前存储节点的storage.conf进行修改
+
+
+   ```shell
+# 存储log日志的目录
+base_path=/home/wang/user_wang/FastDFS/DFS/storage
+# 连接tracker地址信息
+tracker_server=192.168.166.130:22122
+# 存储节点绑定的端口
+storage_server_port=23000
+# 当前存储节点所属的组
+group_name=group1
+# 客户端下载文件的时候, 这个下载的url中是否包含组的名字（这里即group1） true就包含，fales不出现
+// 上传的fileID: group1/M00/00/00/wKj3h1vJRPeAA9KEAAAIZMjR0rI076.cpp
+// 完整的url: http://192.168.166.130/group1/M00/00/00/wKj3h1vJRPeAA9KEAAAIZMjR0rI076.cpp
+url_have_group_name = true
+# 存储节点上存储路径的个数
+store_path_count=1
+# 存储路径的详细信息
+store_path0=/home/wang/user_wang/FastDFS/DFS/storage
+   ```
+
+4. 重写启动Nginx, 还是没有worker进程, 查看log错误日志
+
+	```shell
+	# ERROR - file: ini_file_reader.c, line: 631, include file "http.conf" not exists, line: "#include http.conf"
+	从 /etc/fdfs 下找的时候不存在
+		- 从fastDFS源码安装目录找/conf    # /home/wang/user_wang/FastDFS/fastdfs-5.10/conf
+		- sudo cp http.conf /etc/fdfs
+	# ERROR - file: shared_func.c, line: 968, file /etc/fdfs/mime.types not exist
+		- 从nginx的源码安装包中找/conf    # /home/wang/user_wang/Nginx/nginx/nginx-1.10.1/conf/mime.types
+		- sudo cp mime.types /etc/fdfs
+	```
+
+	经过以上步骤配置完毕，重启nginx：
+
+	![image-20240823165421809](FastDFS.assets/image-20240823165421809.png)
+
+	
+
+5. 通过浏览器请求服务器下载文件: 404 Not Found
+
+	```http
+	http://192.168.1.100/group1/M00/00/00/wKj3h1vJRPeAA9KEAAAIZMjR0rI076.jpg
+	# 错误信息
+	open() "/usr/local/nginx/zyFile2/group1/M00/00/00/wKj3h1vJSOqAM6RHAAvqH_kipG8229.jpg" failed (2: No such file or directory), client: 192.168.247.1, server: localhost, request: "GET /group1/M00/00/00/wKj3h1vJSOqAM6RHAAvqH_kipG8229.jpg HTTP/1.1", host: "192.168.247.135"
+	服务器在查找资源时候, 找的位置不对, 需要给服务器指定一个正确的位置, 如何指定?
+		- 资源在哪? 在存储节点的存储目录中 store_path0
+		- 如何告诉服务器资源在这? 在服务器端添加location处理
+	locatioin /group1/M00/00/00/wKj3h1vJSOqAM6RHAAvqH_kipG8229.jpg
+	location /group1/M00/00/00/
+	location /group1/M00/
+	location /group1/M00/
+	{
+		# 告诉服务器资源的位置
+		root /home/robin/fastdfs/storage/data;
+		ngx_fastdfs_module;
+	}	
+	```
+
+
+#### 6.3. 数据库表
+
+##### 3.1 数据库操作
+
+1. 创建一个名称为cloud_disk的数据库 
+
+	```mysql
+	CREATE DATABASE cloud_disk;
+	```
+
+2. 删除数据库cloud_disk 
+
+	```mysql
+	drop database cloud_disk;
+	```
+
+3. 使用数据库 cloud_disk 
+
+	```mysql
+	use cloud_disk;
+	```
+
+##### 3.2 数据库建表
+
+1. 用户信息表  --  user
+
+	| 字段       | 解释                     |
+	| ---------- | ------------------------ |
+	| id         | 用户序号，自动递增，主键 |
+	| name       | 用户名字                 |
+	| nickname   | 用户昵称                 |
+	| phone      | 手机号码                 |
+	| email      | 邮箱                     |
+	| password   | 密码                     |
+	| createtime | 时间                     |
+
+	```mysql
+	CREATE TABLE user (
+	    id BIGINT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	    name VARCHAR (128) NOT NULL,
+	    nickname VARCHAR (128) NOT NULL,
+	    password VARCHAR (128) NOT NULL,
+	    phone VARCHAR (15) NOT NULL,
+	    createtime VARCHAR (128),
+	    email VARCHAR (100),
+	    CONSTRAINT uq_nickname UNIQUE (nickname),
+	    CONSTRAINT uq_name UNIQUE (NAME)
+	);
+	```
+
+2. 文件信息表  - user_file_list
+
+	| 字段     | 解释                                                         |
+	| -------- | :----------------------------------------------------------- |
+	| md5      | 文件md5, 识别文件的唯一表示(身份证号)                        |
+	| file_id  | 文件id-/group1/M00/00/00/xxx.png                             |
+	| url      | 文件url 192.168.1.2:80/group1/M00/00/00/xxx.png - 下载的时候使用 |
+	| size     | 文件大小, 以字节为单位                                       |
+	| type     | 文件类型： png, zip, mp4……                                   |
+	| fileName | 文件名                                                       |
+	| count    | 文件引用计数， 默认为1    每增加一个用户拥有此文件，此计数器+1 |
+
+	```mysql
+	CREATE TABLE user_file_list (
+	    user VARCHAR (128) NOT NULL,
+	    md5 VARCHAR (200) NOT NULL,
+	    createtime VARCHAR (128),
+	    filename VARCHAR (128),
+	    shared_status INT,
+	    pv INT
+	);
+	```
+
+3. 用户文件列表  -  user_file_list 
+
+	| 字段          | 解释                               |
+	| ------------- | ---------------------------------- |
+	| user          | 文件所属用户                       |
+	| md5           | 文件md5                            |
+	| createtime    | 文件创建时间                       |
+	| filename      | 文件名字                           |
+	| shared_status | 共享状态, 0为没有共享， 1为共享    |
+	| pv            | 文件下载量，默认值为0，下载一次加1 |
+
+	```mysql
+	CREATE TABLE user_file_list (
+	    user VARCHAR (128) NOT NULL,
+	    md5 VARCHAR (200) NOT NULL,
+	    createtime VARCHAR (128),
+	    filename VARCHAR (128),
+	    shared_status INT,
+	    pv INT
+	);
+	```
+
+4. 用户文件数量表  -  user_file_count 
+
+	| 字段  | 解释           |
+	| ----- | -------------- |
+	| user  | 文件所属用户   |
+	| count | 拥有文件的数量 |
+
+	```mysql
+	CREATE TABLE user_file_count (
+	    user VARCHAR (128) NOT NULL PRIMARY KEY,
+	    count INT
+	);
+	```
+
+5. 共享文件列表  -  share_file_list 
+
+	| 字段       | 解释                               |
+	| ---------- | ---------------------------------- |
+	| user       | 文件所属用户                       |
+	| md5        | 文件md5                            |
+	| createtime | 文件共享时间                       |
+	| filename   | 文件名字                           |
+	| pv         | 文件下载量，默认值为1，下载一次加1 |
+
+	```mysql
+	CREATE TABLE share_file_list (
+	    user VARCHAR (128) NOT NULL,
+	    md5 VARCHAR (200) NOT NULL,
+	    createtime VARCHAR (128),
+	    filename VARCHAR (128),
+	    pv INT
+	);
+	```
+
+
+##### 复习
+
+1. fastCGI
+
+	1. 是什么?
+
+		- 运行在服务器端的代码, 帮助服务器处理客户端提交的动态请求
+
+	2. 干什么
+
+		- 帮助服务器处理客户端提交的动态请求
+
+	3. 怎么用?
+
+		- nginx如何转发数据
+
+			```nginx
+			# 分析出客户端请求对应的指令 -- /test
+			location /test
+			{
+			    # 转发出去
+			    fastcgi_pass 地址:端口;
+			    include fastcgi.conf;
+			}
+			```
+
+		- fastcgi如何接收数据
+
+			```shell
+			# 启动, 通过spawn-fcgi启动
+			spawn-fcgi -a IP -p port -f ./fcgi
+			# 编写fastCGI程序的时候
+			 - 接收数据: 调用读终端的函数就是接收数据
+			 - 发送数据: 调用写终端的函数就是发送数据
+			```
+
+		- fastcgi如何处理数据
+
+			```c
+			// 编写登录的fastCgI程序
+			int main()
+			{
+			    while(FCGI_Accept() >= 0)
+			    {
+			        // 1. 接收登录信息 -> 环境变量中
+			        // post -> 读数据块的长度 CONTENT-LENGTH
+			        // get -> 从请求行的第二部分读 QUEERY_STRING
+			        // 2. 处理数据
+			        // 3. 回发结果 -> 格式假设是json
+			        printf("Content-type: application/json");
+			        printf("{\"status\":\"OK\"}")
+			    }
+			}
+			```
+
+
+
+
+
