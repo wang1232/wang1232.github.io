@@ -1,6 +1,4 @@
-# 	QT
-
-## 一、基本类
+# 一、基本类
 
 一般选择QT的MinGw版本
 
@@ -10,7 +8,7 @@ QMainWindow与QDialog都继承了Qwidget，相比于空白的Qwidget，都新增
 
 
 
-### 1 Qwidget：
+## 1 Qwidget：
 
 Qwidget创建成功后：
 
@@ -93,7 +91,7 @@ MyWidget::~MyWidget() //析构
 }
 ```
 
-#### 1.1 常用控件
+### 1.1 常用控件
 
 **QPushButton**
 
@@ -182,11 +180,11 @@ MyWidget::MyWidget(QWidget *parent)
 
 
 
-### 2 QMainWindow
+## 2 QMainWindow
 
 ![image-20240412215622233](QT.assets/image-20240412215622233.png)
 
-#### 2.1 常用控件
+### 2.1 常用控件
 
 ```C++
 #include "mainwindow.h"
@@ -329,7 +327,7 @@ MainWindow::~MainWindow()
 
 
 
-#### 2.2 添加图像资源文件
+### 2.2 添加图像资源文件
 
 1、先将图像文件夹放到项目路径下
 
@@ -359,7 +357,7 @@ MainWindow::~MainWindow()
 
 
 
-### 3 Qt对象模型
+## 3 Qt对象模型
 
 qt的对象都是new出来的，并不用显示的释放delete，这是由于**对象树**的存在。
 
@@ -370,7 +368,7 @@ qt的对象都是new出来的，并不用显示的释放delete，这是由于**�
 
 
 
-### 4 信号与信号槽
+## 4 信号与信号槽
 
 **案例：**
 
@@ -567,9 +565,9 @@ int main(int argc, char *argv[])
 
 
 
-### 5 QT界面布局
+## 5 QT界面布局
 
-#### 5.1 Buttons
+### 5.1 Buttons
 
 * **Push Button**
 
@@ -632,7 +630,7 @@ int main(int argc, char *argv[])
 
 
 
-#### 5.2 item Widgets
+### 5.2 item Widgets
 
 * **List Widget**
 
@@ -699,11 +697,11 @@ int main(int argc, char *argv[])
 
 ![image-20240415161054161](QT.assets/image-20240415161054161.png)
 
-#### 5.3 登录界面布局
+### 5.3 登录界面布局
 
 [qt登录界面布局-CSDN博客](https://blog.csdn.net/hahahammp/article/details/131149978?spm=1001.2014.3001.5501)
 
-#### 5.4 Containers
+### 5.4 Containers
 
 ![image-20240415161506757](QT.assets/image-20240415161506757.png)
 
@@ -741,7 +739,7 @@ int main(int argc, char *argv[])
 
 ![image-20240415162202772](QT.assets/image-20240415162202772.png)
 
-#### 5.5 Input Widegets
+### 5.5 Input Widegets
 
 * **Combo Box**
 
@@ -771,7 +769,7 @@ movie->start();
 
 
 
-#### 5.6、控件封装
+### 5.6、控件封装
 
 首先添加新文件
 
@@ -866,7 +864,7 @@ public:
 
 
 
-#### 5.7 鼠标事件QLabel
+### 5.7 鼠标事件QLabel
 
 ![image-20240415213616171](QT.assets/image-20240415213616171.png)
 
@@ -1003,7 +1001,7 @@ bool mylabel::event(QEvent *e){
 
 
 
-#### 5.8 定时器事件
+### 5.8 定时器事件
 
 ![image-20240415221459240](QT.assets/image-20240415221459240.png)
 
@@ -1138,11 +1136,11 @@ bool Widget::eventFilter(QObject *obj,QEvent *e){
 
 
 
-## 二、QT通信
+# 二、QT通信
 
-### 1 QT串口通信
+## 1 QT串口通信
 
-##### 1.1 界面配置
+### 1.1 界面配置
 
 首先创建一个通信界面：
 
@@ -1165,7 +1163,7 @@ bool Widget::eventFilter(QObject *obj,QEvent *e){
 
 
 
-##### 1.2 代码开始：
+### 1.2 代码开始：
 
 1. 首先转到该按钮的槽函数，整个通信的步骤如下所示：
 
@@ -1378,7 +1376,7 @@ void Widget::recvSLOTS(){
 }
 ```
 
-##### 1.3 代码完成：
+### 1.3 代码完成：
 
 最终的widget.h代码：
 
@@ -1498,7 +1496,7 @@ void Widget::recvSLOTS(){
 
 
 
-### 2 QT网络通信
+## 2 QT网络通信
 
 ​		在标准C++ 没有提供专门用于套接字通信的类，所以只能使用操作系统提供的基于C的 API函数，基于这些C的 API函数我们也可以封装自己的 C++类，C++ 套接字类的封装，但是 Qt 就不一样了，它是 C++的一个框架并且里边提供了用于套接字通信的类（TCP、UDP），这样就使得我们的操作变得更加简单了(当然，在qt中使用标准c的API进行套接字通信也是完全没有问题的 )。
 
@@ -1506,9 +1504,9 @@ void Widget::recvSLOTS(){
 * TCP有确认重传机制和差错校验、拥塞控制，提供可靠服务，UDP没有拥塞控制，网络出现拥塞时不会使源主机的发送速率降低。
 * TCP是点对点的，UDP支持一对多。
 
-#### 2.1 TCP通信
+### 2.1 TCP通信
 
-##### 2.1.1 通信流程
+#### 2.1.1 通信流程
 
 ​	**TCP服务器：**
 
@@ -1541,7 +1539,7 @@ void Widget::recvSLOTS(){
 
 
 
-##### 2.1.2  QTcpServer
+#### 2.1.2  QTcpServer
 
 首先将network包含进.pro文件，**点击构建。**
 
@@ -1623,7 +1621,7 @@ bool QTcpServer::waitForNewConnection(int msec = 0, bool *timedOut = Q_NULLPTR);
 
 
 
-##### 2.1.3  QTcpSocket
+#### 2.1.3  QTcpSocket
 
 QTcpSocket是一个套接字通信类，不管是客户端还是服务器端都需要使用。在Qt中发送和接收数据也属于IO操作（网络IO），先来看一下这个类的继承关系：
 
@@ -1706,7 +1704,7 @@ qint64 QIODevice::write(const QByteArray &byteArray);
 
 
 
-##### 2.1.4  通信开始
+#### 2.1.4  通信开始
 
 **服务器端通信流程**
 
@@ -2078,7 +2076,7 @@ void Widget::on_pushButton_2_clicked()
 
 ​		网络设备使用 127.0.0.1 地址来测试其网络接口的工作状态。设备可以将回送数据包发送到这个地址，然后再将该数据包返回给自己，从而测试网络接口的状态和性能。
 
-#### 2.2  UDP通信
+### 2.2  UDP通信
 
 * 首先设置UDP套接字
 * 绑定固定地址，再通过地址发送数据
@@ -2088,11 +2086,11 @@ void Widget::on_pushButton_2_clicked()
 
 
 
-#### 2.3 多线程网络通信
+### 2.3 多线程网络通信
 
 [Qt中多线程的使用 | 爱编程的大丙 (subingwen.cn)](https://subingwen.cn/qt/thread/)
 
-##### 2.3.1 客户端设计
+#### 2.3.1 客户端设计
 
 ![image-20240423213102670](QT.assets/image-20240423213102670.png)
 
@@ -2187,7 +2185,7 @@ MainWindow::~MainWindow()
 
 
 
-##### 2.3.2  服务器端设计
+#### 2.3.2  服务器端设计
 
 基于子线程去接收文件
 
