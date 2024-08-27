@@ -2536,6 +2536,67 @@ sudo ldconfig 	# 复制完成后执行该命令
 
 而对于下面的返回值，get提交方法和post提交方法的返回值也略有不同。
 
+#### 5.8 复习
+
+1. fastCGI
+
+	1. 是什么?
+
+		- 运行在服务器端的代码, 帮助服务器处理客户端提交的动态请求
+
+	2. 干什么
+
+		- 帮助服务器处理客户端提交的动态请求
+
+	3. 怎么用?
+
+		- nginx如何转发数据
+
+			```nginx
+			# 分析出客户端请求对应的指令 -- /test
+			location /test
+			{
+			    # 转发出去
+			    fastcgi_pass 地址:端口;
+			    include fastcgi.conf;
+			}
+			```
+
+		- fastcgi如何接收数据
+
+			```shell
+			# 启动, 通过spawn-fcgi启动
+			spawn-fcgi -a IP -p port -f ./fcgi
+			# 编写fastCGI程序的时候
+			 - 接收数据: 调用读终端的函数就是接收数据
+			 - 发送数据: 调用写终端的函数就是发送数据
+			```
+
+		- fastcgi如何处理数据
+
+			```c
+			// 编写登录的fastCgI程序
+			int main()
+			{
+			    while(FCGI_Accept() >= 0)
+			    {
+			        // 1. 接收登录信息 -> 环境变量中
+			        // post -> 读数据块的长度 CONTENT-LENGTH
+			        // get -> 从请求行的第二部分读 QUEERY_STRING
+			        // 2. 处理数据
+			        // 3. 回发结果 -> 格式假设是json
+			        printf("Content-type: application/json");
+			        printf("{\"status\":\"OK\"}")
+			    }
+			}
+			```
+
+
+
+
+
+
+
 
 
 ### 6 Nginx+FastDFS
@@ -2686,7 +2747,7 @@ store_path0=/home/wang/user_wang/FastDFS/DFS/storage
 5. 通过浏览器请求服务器下载文件: 404 Not Found
 
 	```http
-	http://192.168.1.100/group1/M00/00/00/wKj3h1vJRPeAA9KEAAAIZMjR0rI076.jpg
+	http://192.168.166.130/group1/M00/00/00/wKimgmX6_SeEYTmfAAAAAAAAAAA372.txt
 	# 错误信息
 	open() "/usr/local/nginx/zyFile2/group1/M00/00/00/wKj3h1vJSOqAM6RHAAvqH_kipG8229.jpg" failed (2: No such file or directory), client: 192.168.247.1, server: localhost, request: "GET /group1/M00/00/00/wKj3h1vJSOqAM6RHAAvqH_kipG8229.jpg HTTP/1.1", host: "192.168.247.135"
 	服务器在查找资源时候, 找的位置不对, 需要给服务器指定一个正确的位置, 如何指定?
@@ -2698,15 +2759,172 @@ store_path0=/home/wang/user_wang/FastDFS/DFS/storage
 	location /group1/M00/
 	{
 		# 告诉服务器资源的位置
-		root /home/robin/fastdfs/storage/data;
+		root /home/wang/user_wang/FastDFS/DFS/storage/data;
 		ngx_fastdfs_module;
 	}	
 	```
 
+配置成功之后重新启动：
 
-#### 6.3. 数据库表
+![image-20240827174642904](FastDFS.assets/image-20240827174642904.png)
 
-##### 3.1 数据库操作
+访问结果：“nihao”是.txt文件的内容，浏览器支持打开图像和特定类型的文件
+
+![image-20240827175256540](FastDFS.assets/image-20240827175256540.png)
+
+
+
+### 7. MYSQL
+
+#### 7.1 安装mysql
+
+在Ubuntu虚拟机上安装MySQL的步骤相对直接，以下是详细的安装步骤和说明：
+
+**一、更新软件包列表**
+
+首先，确保你的Ubuntu虚拟机上的软件包列表是最新的。这可以通过运行以下命令来完成：
+
+```bash
+bash复制代码
+
+sudo apt-get update
+```
+
+**二、安装MySQL Server**
+
+使用`apt-get`命令安装MySQL Server。这个命令会自动处理依赖关系并下载必要的软件包。
+
+```bash
+bash复制代码
+
+sudo apt-get install mysql-server
+```
+
+在安装过程中，系统会提示你设置root用户的密码。请确保设置一个强密码以保护你的数据库。
+
+**三、验证安装**
+
+安装完成后，你可以通过运行以下命令来检查MySQL服务是否正在运行：
+
+```bash
+bash复制代码
+
+sudo systemctl status mysql
+```
+
+或者，对于较旧的Ubuntu版本，你可能需要使用以下命令：
+
+```bash
+bash复制代码
+
+sudo service mysql status
+```
+
+如果MySQL服务正在运行，你将看到表示服务正在运行的消息。
+
+**四、安全设置**
+
+为了增强MySQL服务器的安全性，建议运行`mysql_secure_installation`脚本。这个脚本会帮助你执行一些安全相关的任务，如设置root密码、删除匿名用户、禁止root远程登录等。
+
+```bash
+bash复制代码
+
+sudo mysql_secure_installation
+```
+
+按照脚本的提示进行操作。如果你不确定某个选项，通常选择默认选项（通常是“Y”或“是”）是安全的。
+
+**五、远程访问配置**
+
+如果你需要从其他计算机远程访问MySQL服务器，你需要确保MySQL服务器配置为监听所有接口（不仅仅是localhost）。这通常涉及到修改MySQL的配置文件（如`/etc/mysql/mysql.conf.d/mysqld.cnf`），并找到`bind-address`行，将其值从`127.0.0.1`更改为`0.0.0.0`。
+
+```bash
+bash复制代码
+
+sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf
+```
+
+找到类似下面的行并修改它：
+
+```ini
+ini复制代码
+
+bind-address = 0.0.0.0
+```
+
+修改后，保存文件并重启MySQL服务以使更改生效：
+
+```bash
+bash复制代码
+
+sudo systemctl restart mysql
+```
+
+或者，对于较旧的Ubuntu版本：
+
+```bash
+bash复制代码
+
+sudo service mysql restart
+```
+
+**六、配置用户权限**
+
+默认情况下，MySQL的root用户可能只能从localhost访问。如果你需要允许root用户从任何主机访问，你可以登录到MySQL并使用以下SQL命令更新用户权限：
+
+```sql
+USE mysql;  
+UPDATE user SET Host='%' WHERE User='root';  
+FLUSH PRIVILEGES;
+```
+
+但是，出于安全考虑，通常建议创建一个新的用户并授予适当的权限，而不是使用root用户进行远程连接。
+
+**七、测试连接**
+
+最后，你可以尝试从另一台计算机使用MySQL客户端工具（如MySQL Workbench、Navicat或命令行客户端）连接到你的MySQL服务器，以验证一切是否按预期工作。
+
+在Ubuntu系统上配置MySQL密码的步骤相对直接，以下是一般的配置过程：
+
+1. **登录MySQL**
+
+	使用以下命令登录到MySQL服务器（可能需要输入当前root用户的密码，如果之前未设置则直接回车）：
+
+	```bash
+	sudo mysql -u root -p
+	```
+
+	如果之前设置了密码，输入后按回车即可登录；如果没有设置密码，则直接按回车。
+
+2. **修改密码**
+
+	登录后，使用以下SQL命令来更改root用户的密码：
+
+	```sql
+	ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '新密码';
+	```
+
+	请将`'新密码'`替换为你想要设置的新密码。注意，根据你的MySQL版本和配置，这条命令的具体形式可能有所不同。在某些版本中，可能需要使用`FLUSH PRIVILEGES;`来刷新权限，但在较新版本的MySQL中，使用`ALTER USER`命令后通常不需要再执行此操作。
+
+	如果提示密码策略不满足要求（如密码长度不足），你可以通过执行以下命令来查看当前的密码策略：
+
+	```sql
+	SHOW VARIABLES LIKE 'validate_password%';
+	```
+
+	然后，根据策略要求调整你的密码，并重新执行上述的`ALTER USER`命令。
+
+3. **退出MySQL**
+
+	密码修改完成后，使用以下命令退出MySQL：
+
+	```sql
+	exit;
+	```
+
+
+
+#### 7.2 数据库操作
 
 1. 创建一个名称为cloud_disk的数据库 
 
@@ -2726,7 +2944,7 @@ store_path0=/home/wang/user_wang/FastDFS/DFS/storage
 	use cloud_disk;
 	```
 
-##### 3.2 数据库建表
+#### 7.3 数据库建表
 
 1. 用户信息表  --  user
 
@@ -2832,64 +3050,6 @@ store_path0=/home/wang/user_wang/FastDFS/DFS/storage
 	    pv INT
 	);
 	```
-
-
-##### 复习
-
-1. fastCGI
-
-	1. 是什么?
-
-		- 运行在服务器端的代码, 帮助服务器处理客户端提交的动态请求
-
-	2. 干什么
-
-		- 帮助服务器处理客户端提交的动态请求
-
-	3. 怎么用?
-
-		- nginx如何转发数据
-
-			```nginx
-			# 分析出客户端请求对应的指令 -- /test
-			location /test
-			{
-			    # 转发出去
-			    fastcgi_pass 地址:端口;
-			    include fastcgi.conf;
-			}
-			```
-
-		- fastcgi如何接收数据
-
-			```shell
-			# 启动, 通过spawn-fcgi启动
-			spawn-fcgi -a IP -p port -f ./fcgi
-			# 编写fastCGI程序的时候
-			 - 接收数据: 调用读终端的函数就是接收数据
-			 - 发送数据: 调用写终端的函数就是发送数据
-			```
-
-		- fastcgi如何处理数据
-
-			```c
-			// 编写登录的fastCgI程序
-			int main()
-			{
-			    while(FCGI_Accept() >= 0)
-			    {
-			        // 1. 接收登录信息 -> 环境变量中
-			        // post -> 读数据块的长度 CONTENT-LENGTH
-			        // get -> 从请求行的第二部分读 QUEERY_STRING
-			        // 2. 处理数据
-			        // 3. 回发结果 -> 格式假设是json
-			        printf("Content-type: application/json");
-			        printf("{\"status\":\"OK\"}")
-			    }
-			}
-			```
-
-
 
 
 
