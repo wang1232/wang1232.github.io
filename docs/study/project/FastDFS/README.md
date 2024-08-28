@@ -2785,8 +2785,6 @@ store_path0=/home/wang/user_wang/FastDFS/DFS/storage
 首先，确保你的Ubuntu虚拟机上的软件包列表是最新的。这可以通过运行以下命令来完成：
 
 ```bash
-bash复制代码
-
 sudo apt-get update
 ```
 
@@ -2795,8 +2793,6 @@ sudo apt-get update
 使用`apt-get`命令安装MySQL Server。这个命令会自动处理依赖关系并下载必要的软件包。
 
 ```bash
-bash复制代码
-
 sudo apt-get install mysql-server
 ```
 
@@ -2807,16 +2803,12 @@ sudo apt-get install mysql-server
 安装完成后，你可以通过运行以下命令来检查MySQL服务是否正在运行：
 
 ```bash
-bash复制代码
-
 sudo systemctl status mysql
 ```
 
 或者，对于较旧的Ubuntu版本，你可能需要使用以下命令：
 
 ```bash
-bash复制代码
-
 sudo service mysql status
 ```
 
@@ -2827,8 +2819,6 @@ sudo service mysql status
 为了增强MySQL服务器的安全性，建议运行`mysql_secure_installation`脚本。这个脚本会帮助你执行一些安全相关的任务，如设置root密码、删除匿名用户、禁止root远程登录等。
 
 ```bash
-bash复制代码
-
 sudo mysql_secure_installation
 ```
 
@@ -2839,32 +2829,24 @@ sudo mysql_secure_installation
 如果你需要从其他计算机远程访问MySQL服务器，你需要确保MySQL服务器配置为监听所有接口（不仅仅是localhost）。这通常涉及到修改MySQL的配置文件（如`/etc/mysql/mysql.conf.d/mysqld.cnf`），并找到`bind-address`行，将其值从`127.0.0.1`更改为`0.0.0.0`。
 
 ```bash
-bash复制代码
-
 sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf
 ```
 
 找到类似下面的行并修改它：
 
 ```ini
-ini复制代码
-
 bind-address = 0.0.0.0
 ```
 
 修改后，保存文件并重启MySQL服务以使更改生效：
 
 ```bash
-bash复制代码
-
 sudo systemctl restart mysql
 ```
 
 或者，对于较旧的Ubuntu版本：
 
 ```bash
-bash复制代码
-
 sudo service mysql restart
 ```
 
@@ -3052,4 +3034,691 @@ FLUSH PRIVILEGES;
 	```
 
 
+
+### 8.服务端代码部署
+
+#### 8.1 cloud_disk部署
+
+```shell
+cd cloud_disk
+```
+
+![image-20240828150755488](FastDFS.assets/image-20240828150755488.png)
+
+```shell
+make clean
+mkae 
+make install
+```
+
+在make时会报错：
+
+![image-20240828150846875](FastDFS.assets/image-20240828150846875.png)
+
+节点ip配置：
+
+* 打开conf下的cfj.json
+
+![image-20240828152940997](FastDFS.assets/image-20240828152940997.png)
+
+* 将服务器ip和分布式节点ip进行更改配置
+
+![image-20240828152851375](FastDFS.assets/image-20240828152851375.png)
+
+* 对于cfg.json文件的解析是通过编写API尽心解析的：
+
+	![image-20240828153547087](FastDFS.assets/image-20240828153547087.png)
+
+* 对于每一个登录的模块功能都可以开发为一个cgi，最终编译为可执行文件。其中.sh文件都是指令执行的脚本
+
+* 在该目录下还有配置好的nginx.conf文件，同样配置其相关路径：
+
+	![image-20240828154415783](FastDFS.assets/image-20240828154415783.png)
+
+* 而nginx.conf中转发的ip和端口在fcgi.sh中也已经对应好了（文件要发给nginx，nginx转发给fcgi，fcgi需要绑定对应的ip/port和进程）：
+
+	![image-20240828154810670](FastDFS.assets/image-20240828154810670.png)
+
+
+
+### 9. 登录和注册协议
+
+#### 9.1 注册协议
+
+1. 客户端
+
+	```http
+	# URL
+	http://192.168.1.100:80/reg
+	# post数据格式
+	{
+		userName:xxxx,
+	    nickName:xxx,
+	    firstPwd:xxx,
+	    phone:xxx,
+	    email:xxx
+	}
+	```
+
+2. 服务器端 - Nginx
+
+	- 服务器端的配置
+
+		```nginx
+		location /reg
+		{
+		    # 转发数据
+		    fastcgi_pass localhost:10000;
+		    include fastcgi.conf;
+		}
+		```
+
+	- 编写fastcgi程序
+
+		```c
+		int main()
+		{
+		    while(FCGI_Accept() >= 0)
+		    {
+		        // 1. 根据content-length得到post数据块的长度
+		        // 2. 根据长度将post数据块读到内存
+		        // 3. 解析json对象, 得到用户名, 密码, 昵称, 邮箱, 手机号
+		        // 4. 连接数据库 - mysql, oracle
+		        // 5. 查询, 看有没有用户名, 昵称冲突 -> {"code":"003"}
+		        // 6. 有冲突 - 注册失败, 通知客户端
+		        // 7. 没有冲突 - 用户数据插入到数据库中
+		        // 8. 成功-> 通知客户端 -> {"code":"002"}
+		        // 9. 通知客户端回传的字符串的格式
+		        printf("content-type: application/json\r\n");
+		        printf("{\"code\":\"002\"}");
+		    }
+		}
+		```
+
+	- 服务器回复的数据格式:
+
+		| 成功         | {"code":"002"} |
+		| ------------ | -------------- |
+		| 该用户已存在 | {"code":"003"} |
+		| 失败         | {"code":"004"} |
+
+#### 9.2 登录协议
+
+1. 客户端
+
+	```http
+	#URL
+	http://127.0.0.1:80/login
+	# post数据格式
+	{
+	    user:xxxx,
+	    pwd:xxx
+	}
+	```
+
+2. 服务器端
+
+	- Nginx服务器配置
+
+		```nginx
+		location /login
+		{
+		    # 转发数据
+		    fastcgi_pass localhost:10001;
+		    include fastcgi.conf;
+		}
+		```
+
+	- 服务器回复数据格式
+
+		```json
+		// 成功
+		{
+		    "code": "000",
+		    "token": "xxx"
+		}
+		// 失败
+		{
+		    "code": "001",
+		    "token": "faild"
+		}
+		```
+
+#### 9.3 单例模式
+
+1. 单例模式的优点: 
+
+	- 在内存中只有一个对象, 节省内存空间 
+	- 避免频繁的创建销毁对象,可以提高性能 
+	- 避免对共享资源的多重占用 
+	- 可以全局访问 
+
+2. 单例模式的适用场景: 
+
+	- 需要频繁实例化然后销毁的对象 
+
+	- 创建对象耗时过多或者耗资源过多,但又经常用到的对象 
+
+		```c++
+		struct More
+		{
+		    int number;
+		    ...(100)
+		}
+		```
+
+	- 有状态的工具类对象 
+
+	- 频繁访问数据库或文件的对象 
+
+	- 要求只有一个对象的场景  
+
+3. 如何保证单例对象只有一个?
+
+	```c
+	// 在类外部不允许进行new操作
+	class Test
+	{
+	public:
+		// 1. 默认构造
+		// 2. 默认析构
+		// 3. 默认的拷贝构造
+	}
+	// 1. 构造函数私有化
+	// 2. 拷贝构造私有化
+	```
+
+4. 单例模式实现方式?
+
+	- 懒汉模式 - 单例对象在使用的时候被创建出来, 线程安全问题需要考虑
+
+		```c++
+		class Test
+		{
+		public:
+			static Test* getInstance()
+			{
+				if(m_test == NULL)
+		        {
+		     		m_test = new Test();       
+		        }
+		        return m_test;
+			}
+		private:
+			Test();
+			Test(const Test& t);
+			// 静态变量使用之前必须初始化
+			static Test* m_test;
+		}
+		Test* Test::m_test = NULL;	// 初始化
+		```
+
+	- 饿汉模式 - 单例对象在使用之前被创建出来
+
+		```c++
+		class Test
+		{
+		public:
+			static Test* getInstance()
+			{
+				return m_test;
+			}
+		private:
+			Test();
+			Test(const Test& t);
+			// 静态变量使用之前必须初始化
+			static Test* m_test;
+		}
+		Test* Test::m_test = new Test();	// 初始化
+		```
+
+
+1. QRegExp类
+
+	```c++
+	QRegExp::QRegExp();
+	QRegExp::QRegExp(const QString &pattern, Qt::CaseSensitivity cs = Qt::CaseSensitive, PatternSyntax syntax = RegExp)
+	    - pattern: 正则表达式, 该对象继续数据校验的规则
+	bool QRegExp::exactMatch(const QString &str) const
+	    - str: 被校验的字符串
+	    - 返回值: 匹配成功: true, 失败:false
+	// 重新给正则对象指定匹配规则
+	void QRegExp::setPattern(const QString &pattern)
+	    - pattern: 正则表达式
+	```
+
+	
+
+2. QSS参考资料
+
+	- <https://blog.csdn.net/liang19890820/article/details/51691212
+
+3. 通过样式函数给控件设置样式
+
+	```c++
+	void setStyleSheet(const QString &styleSheet)
+		- 参数styleSheet: 样式字符串, css格式
+		- 在QT中参照帮助文档也可以
+	```
+
+	![1531966938946](FastDFS.assets/1531966938946.png)
+
+4. sourceInsight
+
+	![1531987944556](FastDFS.assets/1531987944556.png)
+
+	![1531988036743](FastDFS.assets/1531988036743.png)
+
+	![1531988132774](FastDFS.assets/1531988132774.png)
+
+	![1531988185971](FastDFS.assets/1531988185971.png)
+
+
+
+```c
+// 刷新窗口
+// 什么时候被回调?
+// 1. 窗口第一次现实的时候
+// 2. 窗口被覆盖, 又重新显示
+// 3. 最大化, 最小化
+// 4. 手动重绘 - > 调用一个api : [slot] void QWidget::update()
+// 函数内部写的绘图动作 -> QPainter
+[virtual protected] void QWidget::paintEvent(QPaintEvent *event);
+	- QPainter(QPaintDevice *device) -> 参数应该this
+
+// 这个点是窗口左上角坐标
+void move(int x, int y);
+void move(const QPoint &);
+
+```
+
+Qt中使用正则表达式进行数据校验:
+
+```c++
+// 使用的类: QRegExp
+// 1. 构造对象
+QRegExp::QRegExp();
+QRegExp::QRegExp(const QString &pattern, Qt::CaseSensitivity cs = Qt::CaseSensitive, PatternSyntax syntax = RegExp);
+	- pattern: 正则表达式
+// 2. 如何使用正则对象进行数据校验
+bool QRegExp::exactMatch(const QString &str) const;
+	- 参数str: 要校验的字符串
+	- 返回值: 匹配成功: true, 失败: false
+// 3. 给正则对象指定匹配规则或者更换匹配规则
+void QRegExp::setPattern(const QString &pattern);
+	- 参数pattern: 新的正则表达式
+```
+
+Qt中处理json
+
+```c++
+// QJsonDocument
+// 1. 将字符串-> json对象/数组; 2. json对象,数组 -> 格式化为字符串
+// QJsonObject -> 处理json对象的   {}
+// QJsonArray  -> 处理json数组		[]
+// QJsonValue  -> 包装数据的, 字符串, 布尔, 整形, 浮点型, json对象, json数组
+```
+
+1. 内存中的json数据 -> 写磁盘
+
+	![1540197804758](FastDFS.assets/1540197804758.png)
+
+2. 磁盘中的json字符串 -> 内存
+
+	![1540197755128](FastDFS.assets/1540197755128.png)
+
+
+
+### 10. QT开发
+
+#### 10.1 登录界面：
+
+##### 10.1.1 窗口移动
+
+**功能需求：**
+
+主要功能和目前主流移动功能类似，点击拖动页面/界面的上面可以移动窗口，但是点击拖动其他窗口位置没反应
+
+如图即：鼠标点击并拖动窗口上半部分时才会移动：
+
+![image-20240828171828411](FastDFS.assets/image-20240828171828411.png)
+
+**处理流程：**通过处理鼠标事件来实现
+
+1. 要有两个窗口
+	* 一个父窗口
+	* 一个子窗口，主要操作子窗口
+2. 定义自己的窗口类MyTitleBar
+	* 需要有一个继承自`QWidget`或`QMainWindow`的类。在这个类中，重写一些鼠标事件处理函数。
+3. 重写鼠标事件处理函数
+	* 需要重写`mousePressEvent`、`mouseMoveEvent`和`mouseReleaseEvent`这三个函数
+	* 在`mousePressEvent`中，检查鼠标按下时是否在窗口的可拖动区域（例如顶部），并记录下当前的位置。在`mouseMoveEvent`中，如果检测到鼠标拖拽动作（即鼠标按钮仍被按下），则更新窗口的位置。在`mouseReleaseEvent`中，清理可能的拖拽状态。
+		* 使用`event->globalPos()`来获取鼠标的全局位置，并使用这个位置来移动窗口。
+
+3. 鼠标拖动窗口移动, 左上角坐标求解方法:
+	* 在鼠标按下还没有移动的时候求差值
+
+		* 差值 = 鼠标当前位置 - 屏幕左上角的点
+	* 鼠标移动过程中
+
+		* 屏幕左上角的点 = 鼠标当前位置 - 差值
+
+![1528007074492](FastDFS.assets/1528007074492.png)
+
+
+
+
+
+mytitlebar.h
+
+```c++
+#ifndef MYTITLEBAR_H
+#define MYTITLEBAR_H
+
+#include <QWidget>
+
+namespace Ui {
+class MyTitleBar;
+}
+
+class MyTitleBar : public QWidget
+{
+    Q_OBJECT
+
+public:
+    explicit MyTitleBar(QWidget *parent = 0);
+    ~MyTitleBar();
+
+    void setMyParent(QWidget* parent);
+
+signals:
+    void showSetWindow();
+    void showMinWindow();
+    void closeMyWindow();
+
+protected:
+    // 鼠标移动 -> 让窗口跟随鼠标懂
+    void mouseMoveEvent(QMouseEvent *event);
+    // 鼠标按下 -> 求相对距离
+    void mousePressEvent(QMouseEvent *event);
+
+private:
+    Ui::MyTitleBar *ui;
+    QWidget* m_parent = NULL;
+    QPoint m_pt;
+};
+
+#endif // MYTITLEBAR_H
+
+```
+
+mytitlebar.cpp
+
+```c++
+#include "mytitlebar.h"
+#include "ui_mytitlebar.h"
+#include <QMouseEvent>
+
+MyTitleBar::MyTitleBar(QWidget *parent) :
+    QWidget(parent),
+    ui(new Ui::MyTitleBar)
+{
+    ui->setupUi(this);
+    // m_parent = parent;
+
+    connect(ui->setBtn, &QToolButton::clicked, this, [=]()
+    {
+        emit showSetWindow();
+    });
+    connect(ui->minBtn, &QToolButton::clicked, this, [=]()
+    {
+        emit showMinWindow();
+    });
+    connect(ui->closeBtn, &QToolButton::clicked, this, [=]()
+    {
+        emit closeMyWindow();
+    });
+    // 设置logo
+    ui->logo->setPixmap(QPixmap(":/images/logo.ico").scaled(40, 40));
+}
+
+MyTitleBar::~MyTitleBar()
+{
+    delete ui;
+}
+
+void MyTitleBar::setMyParent(QWidget *parent)
+{
+    m_parent = parent;
+}
+
+void MyTitleBar::mouseMoveEvent(QMouseEvent *event)
+{
+    // 鼠标移动到了什么位置? -> 通过参数globalPos();
+    // 得到位置之后 -> 让窗口跟随鼠标移动 -> move();
+    // 移动的应该是外部的login窗口
+    // event->globalPos()鼠标移动到了屏幕的什么位置, 要求的是窗口左上角的点
+    // 左上角的位置 = 当前鼠标位置 - 相对位置;
+    // 判断持续状态, 鼠标左键
+    if(event->buttons() & Qt::LeftButton)   //鼠标左键被按下
+    {
+         m_parent->move(event->globalPos() - m_pt);
+    }
+}
+
+void MyTitleBar::mousePressEvent(QMouseEvent *event)
+{
+    // 如果是鼠标左键, 瞬间状态
+    if(event->button() == Qt::LeftButton)
+    {
+        // 相对位置 = 当前鼠标位置 - 左上角的位置;
+        m_pt = event->globalPos() - m_parent->geometry().topLeft();
+    }
+}
+```
+
+
+
+* **`globalPos() - m_pt`**
+	* **`event->globalPos()`**：这个函数返回的是鼠标在屏幕上的全局坐标。当你移动鼠标时，这个坐标会实时更新，表示鼠标当前在屏幕上的位置。
+	* **`m_pt`**：这个变量是在鼠标按下时（通常是在 `mousePressEvent` 方法中）计算并保存的。它记录了鼠标按下时，鼠标的全局坐标与窗口左上角的全局坐标之间的差值（即相对位置）。这个**差值在拖动过程中是不变的**，因为它只与鼠标按下时的状态有关。
+	* **`globalPos() - m_pt`**：这个表达式计算的是当前鼠标的全局坐标与鼠标按下时窗口左上角的全局坐标之间的新差值。换句话说，它给出了如果窗口保持鼠标按下时的相对位置不变，现在应该将窗口的左上角移动到屏幕上的哪个位置。
+	* **`move(...)`**：`move` 方法是 `QWidget` 类的一个成员函数，用于移动窗口到指定的屏幕位置。
+* 总结来说，`globalPos() - m_pt` 计算的是当前鼠标位置与窗口应该跟随移动到的目标位置之间的差值(左上角的新坐标)，而 `move` 方法则根据这个差值来更新窗口的位置。
+
+
+
+
+
+
+
+login.h
+
+```c++
+#ifndef LOGIN_H
+#define LOGIN_H
+
+#include <QDialog>
+
+namespace Ui {
+class Login;
+}
+
+class Login : public QDialog
+{
+    Q_OBJECT
+
+public:
+    explicit Login(QWidget *parent = 0);
+    ~Login();
+protected:
+    void paintEvent(QPaintEvent *event);
+
+private slots:
+
+    void on_regAccount_clicked();
+
+    void on_regButton_clicked();
+    
+private:
+    Ui::Login *ui;
+};
+
+#endif // LOGIN_H
+
+```
+
+login.cpp
+
+```c++
+#include "login.h"
+#include "ui_login.h"
+#include <QPainter>
+#include <QRegExp>
+#include <QMessageBox>
+#include <QNetworkAccessManager>
+#include <QNetworkRequest>
+#include <QNetworkReply>
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <QJsonArray>
+
+Login::Login(QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::Login)
+{
+    ui->setupUi(this);
+    // 去边框
+    this->setWindowFlags(Qt::FramelessWindowHint | windowFlags());
+
+    // 给titbar对象设置父亲
+    ui->myToolBar->setMyParent(this);
+
+    // 处理接受的titlebar的信号
+    connect(ui->myToolBar, &MyTitleBar::showSetWindow, [=]()
+    {
+        ui->stackedWidget->setCurrentWidget(ui->setPage);
+    });
+    connect(ui->myToolBar, &MyTitleBar::showMinWindow, [=]()
+    {
+        // 窗口最小化
+        this->showMinimized();
+    });
+    connect(ui->myToolBar, &MyTitleBar::closeMyWindow, [=]()
+    {
+        if(ui->stackedWidget->currentWidget() == ui->setPage)
+        {
+            ui->stackedWidget->setCurrentIndex(0);  // 登录窗口
+            // 清空控件中的用户数据
+        }
+        else if(ui->stackedWidget->currentWidget() == ui->regPage)
+        {
+            ui->stackedWidget->setCurrentIndex(0);  // 登录窗口
+            // 清空控件中的用户数据
+        }
+        else
+        {
+            this->close();
+        }
+    });
+}
+
+Login::~Login()
+{
+    delete ui;
+}
+
+void Login::paintEvent(QPaintEvent *event)
+{
+    // 画背景图的操作
+    QPainter p(this);   // 绘图设备为当前窗口
+    p.drawPixmap(0, 0, this->width(), this->height(), QPixmap(":/images/login_bk.jpg"));
+}
+
+void Login::on_regAccount_clicked()
+{
+    ui->stackedWidget->setCurrentIndex(1);
+}
+
+
+void Login::on_regButton_clicked()
+{
+    // 处理的动作
+    // 1. 从控件中取出用户输入的数据
+    QString userName = ui->reg_userName->text();
+    QString nickName = ui->reg_NickName->text();
+    QString passwd = ui->reg_passwd->text();
+    QString confirmPwd = ui->reg_confirmPwd->text();
+    QString email = ui->reg_mail->text();
+    QString phone = ui->reg_phone->text();
+    // 2. 数据校验
+    QRegExp regexp;
+    // 校验用户名,密码
+    QString USER_REG   = "^[a-zA-Z0-9_@#-\\*]\\{3,16\\}$";
+    regexp.setPattern(USER_REG);
+    bool bl = regexp.exactMatch(userName);
+    if(bl == false)
+    {
+        QMessageBox::warning(this, "ERROR", "用户名格式不正确!");
+        return;
+    }
+    // regexp.setPattern();
+    // 3. 用户信息发送给服务器
+    //  - 如何发送: 使用http协议发送, 使用post方式
+    //  - 数据格式: json对象
+    QNetworkAccessManager* pManager = new QNetworkAccessManager(this);
+    QNetworkRequest request;
+    QString url = QString("http://%1:%2/reg").arg(ui->lineEdit_9->text()).arg(ui->lineEdit_10->text());
+    request.setUrl(url);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");    // 描述post数据的格式
+    // 将用户提交的数据拼接成功json对象字符串
+    /*
+        {
+            userName:xxxx,
+            nickName:xxx,
+            firstPwd:xxx,
+            phone:xxx,
+            email:xxx
+        }
+    */
+    QJsonObject obj;
+    // insert(const QString &key, const QJsonValue &value)
+    obj.insert("userName", userName); // QJsonValue(userName)
+    obj.insert("nickName", nickName);
+    obj.insert("firstPwd", passwd);
+    obj.insert("phone", phone);
+    obj.insert("email", email);
+    // obj -> doc
+    QJsonDocument doc(obj);
+    // doc -> qbytearray
+    QByteArray json = doc.toJson();
+    QNetworkReply* reply = pManager->post(request, json);
+    // 4. 接收服务器发送的响应数据
+    connect(reply, &QNetworkReply::readyRead, this, [=](){
+        // 5. 对服务器响应进行分析处理, 成功or失败
+        // 5.1 接收数据 {"code":"003"}
+        QByteArray all = reply->readAll();
+        // 5.2 需要知道服务器往回发送的字符串的格式 -> 解析
+        // qbytearray -> doc
+        QJsonDocument doc = QJsonDocument::fromJson(all);
+        // doc -> obj
+        QJsonObject myobj = doc.object();
+        QString status = myobj.value("code").toString();
+        // 5.3 判读成功, 失败, 给用户提示
+        if("002" == status)
+        {
+            // 成功
+        }
+        else if("003" == status)
+        {
+            // 用户已经存在
+        }
+        else
+        {
+            // 失败
+        }
+    });
+
+}
+```
 

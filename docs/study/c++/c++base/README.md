@@ -1895,7 +1895,7 @@ public:
 
 ### 		**10.3.5 虚析构**
 
-在父类指针申请了(new)临时指针指向子类空间，是要进行释放的的，但是这里由于指针是父类的类型，delete只会调用父类的析构，并不会调用子类的析构，不会释放子类析构，这样只申请不释放，会造成**内存泄漏**，因此父类的析构函数前面也要加virtual，这样就**可以通过父类指针释放掉所有子类空间**。
+在父类指针申请了(new)临时指针指向子类空间，是要进行释放的的，但是这里由于指针是父类的类型，delete只会调用父类的析构，并不会调用子类的析构，不会释放子类析构，这样只申请不释放，会造成**内存泄漏**，因此父类的析构函数前面也要加virtual，这样就**可以通过父类指针释放掉所有子类空间**
 
 ```c++
 class A{
@@ -1909,7 +1909,8 @@ class B:public A{
 A a; //只会调用调用类的构造函数和析构函数
 B b; //先调用父类的构造。再调用派生类的构造
 A *a = new B;
-delete a; //只会调用基类的构造和析构，然后调用派生类的构造函数，但是不会调用派生类的析构函数，解决方法->将析构函数也设置为	a = nullptr;			virtual
+delete a; //只会调用基类的构造和析构，然后调用派生类的构造函数，但是不会调用派生类的析构函数，解决方法->将析构函数也设置为				virtual
+a = nullptr;			
 ```
 
 ​		子类的析构函数也是通过从父类所继承的虚函数指针所调用，而虚函数表中的析构函数地址会自动修改为子类析构函数地址，不用进行重写。在析构了子类之后，也会自动调用父类析构。
@@ -1918,7 +1919,7 @@ delete a; //只会调用基类的构造和析构，然后调用派生类的构�
 
 ​		**补：**
 
-​		即使派生类不重写析构函数，基类也应该写上虚析构函数，因为通过父指针无法操控派生类的成员函数和成员变量，因此必须协商虚析构。
+​		即使派生类不重写析构函数，基类也应该写上虚析构函数，因为通过父指针无法操控派生类的成员函数和成员变量，因此必须写上虚析构。
 
 
 
@@ -1926,12 +1927,15 @@ delete a; //只会调用基类的构造和析构，然后调用派生类的构�
 
 ### 10.3.6 纯虚析构
 
+* 纯虚析构（pure virtual destructor）实际上并不是一个合法的C++概念。在C++中，你不能直接将析构函数声明为纯虚函数（`virtual ~ClassName() = 0;` 这样的语法是不合法的）。析构函数可以被声明为虚函数，但不能被声明为纯虚函数，因为析构函数需要有一个实现体（即使它只包含`{}`），以便在对象销毁时调用。
+* 通过在基类中提供一个带有虚析构函数的声明（并且提供一个空的实现体），然后在派生类中提供具体的析构函数实现，来解决销毁派生类对象时先调用派生类析构再调用基类析构的问题。这是多态性在析构过程中的体现。
+
 ```c++
 class A{
 public:
 	virtual void test() = 0;
     virtual void test() = 0{cout << "纯虚函数也可以在基类中实现"}
-	virtual ~A() = 0;{cout<< "代码实现" << endl;} //纯虚析构：必须在父类中也添加虚析构函数
+	virtual ~A() {cout<< "空函数体" << endl;} //析构函数：必须在父类中也添加虚析构函数
 };
 A::~A(){
 	delete p;
@@ -1941,6 +1945,10 @@ public:
    void test() override{
        cout << "这是重写" << endl;
    }
+   ~B() override { // 重写析构函数  
+        // 派生类特有的析构逻辑  
+        std::cout << "B destructor called" << std::endl;  
+    }
 }
 //
 //创建抽象类指针指向派生类对象
@@ -1969,7 +1977,7 @@ a->test();
 
 ### 10.3.7 静态类型和动态类型，静态绑定和动态绑定
 
-* 静态类型：静态类型是指在**编译时已确定**每一个变量的类型，时对象在声明时**明确指定的类型**，不会在运行时改变。
+* 静态类型：静态类型是指在**编译时已确定**每一个变量的类型，是对象在声明时**明确指定的类型**，不会在运行时改变。
 * 动态类型：是在**运行期**时根据变量的实际值来确定其类型，通常是指一个指针或引用目前所指对象的类型。
 * 静态绑定：绑定的是静态类型，所对应的函数或属性依赖于对象的静态类型。在**编译期**就确定调用哪个函数或方法，主要适用于静态方法和非虚函数，编译器会根据函数或方法的名称和参数类型来确定调用方式
 * 动态绑定：绑定的是动态类型，所对应的函数或属性依赖于对象的动态类型。根据对象的实际类型来决定调用哪个函数。这意味着在**运行时**才能确定调用哪个函数或方法。这主要适用于虚函数和多态。
@@ -2045,13 +2053,13 @@ int main() {
 
 * 是C++语言的一个特性，它允许程序在运行时查询对象的实际类型。
 * RTTI提供了两个主要的运算符：`dynamic_cast`和`typeid`，以及`type_info`类，它们一起工作以在运行时确定对象的类型。
-* 运行阶段类型识别（RTTI）**为程序在运行阶段确定对象的类型**，只适用于包含虚函数的类，即继承层次结构中的多态对象
+* 运行阶段类型识别（RTTI）**为程序在运行阶段确定对象的类型**，**保证安全的类型转换**，只适用于包含虚函数的类，即继承层次结构中的多态对象
 
 #### **dynamic_cast**
 
 * dynamic_cast运算符**只能转换具有继承关系的指针或者引用**。
 
-  * 只能由子类型转换为父类型。在 C++ 中，将子类指针或引用隐式转换为父类指针或引用是自动且安全的，无论基类是否包含虚函数
+  * 只能由子类型转换为父类型。在 C++ 中，将子类指针或引用隐式转换为父类指针或引用是自动且安全的，无论基类是否包含虚函数。
   * 可以由父类型转换为子类型（基类必须包含虚函数）
 
 * **不能转换基础数据类型，不能转换非继承关系的指针和引用**
@@ -2061,9 +2069,11 @@ int main() {
   * dynamic_cast向下转换**只适用于包含虚函数的类**
   * dynamic_cast 可以将派生类指针转换为基类指针，这种画蛇添足的做法没有意义。
   * dynamic_cast 可以用于引用，但是，没有与空指针对应的引用值（引用的目标不能是空指针），如果转换请求不正确，会出现 bad_cast 异常。
+  	* 如果转换无法进行（比如基类指针不指向派生类对象），它会**返回空指针（对于指针类型）**或者**抛出`std::bad_cast`异常（对于引用类型）**
+  
 
   **语法：**派生类指针 = dynamic_cast<派生类类型 *>(基类指针);
-
+  
   基类指针可以调用派生类对象，如何知道基类指针所指向的是那种派生类的对象呢？
 
 ```c++
@@ -2356,6 +2366,8 @@ struct person{
 
 * move()能把**左值强制转换为右值,用以实现移动语义**
 * move是将对象的状态或者所有权从一个对象转移到另一个对象，**只是转移，没有内存的搬迁或者内存拷贝**，因此转移所有权效率比较高。
+	* 移动构造函数被声明为接受一个同类型的右值引用（`T&&`）作为参数，并且通常会将其参数的资源“窃取”到当前对象中，然后将参数设置为一个安全但不可用的状态（通常是空状态或指向已释放的资源）。
+
 
 **移动构造函数：从一个临时对象（右值）转移资源（如内存、文件句柄等）到另一个对象，而不是复制这些资源。**
 
@@ -2443,7 +2455,7 @@ public:
 
 int main(){
     MyClass ret1(18,20);
-    MyClass ret2(std::move(ret1)); //调用构造函数
+    MyClass ret2(std::move(ret1)); //调用移动构造函数
     ret2 = std::move(ret1); //赋值运算符
 }
 ```
@@ -2510,6 +2522,8 @@ public:
 
 **深拷贝**：需要**手动的编写拷贝构造函数与赋值运算符**，**会开辟一片新的空间存放数据**（new），**不共享内存**，修改新对象，旧对象保持不变。
 
+深拷贝不仅复制对象本身（包括其所有成员变量），还**递归地复制**对象内部所有指向动态分配内存的指针所指向的数据，直到所有被引用的数据都是基本数据类型（如`int`、`float`等）或不可变类型（在C++中，基本数据类型通常都被视为不可变的，但如果你指的是像`std::string`这样的封装了动态内存管理的类，则它们的行为类似于可变类型，但在深拷贝时，你会复制整个字符串内容）。
+
 * 一个对象以值传递的方式传入函数体
 * 一个对象以值传递的方式从函数体返回
 * 一个对象需要通过另一个对象进行初始化
@@ -2522,18 +2536,102 @@ public:
 	* 当对象中包含指针或动态分配的资源时，通常需要使用深拷贝。
 	* 如果类显示的写了析构函数，通常需要深拷贝，以确保每个对象拥有自己的资源副本，并在对象生命周期结束时正确地释放资源。
 
+深拷贝和浅拷贝的概念主要适用于包含动态分配内存或指针的对象。
 
+浅拷贝：
 
 ```c++
-vector<int> vec1 = {1,2,3};
-vector<int> vec2 =vec1; //浅拷贝->创建了vec1的一个拷贝。但共享相同的资源-->拷贝初始化，不涉及指针变量
-vec2[0] = 100;
+#include <iostream>  
+#include <cstring> // 用于strcpy  
+  
+class ShallowCopyExample {  
+public:  
+    char* data;  
+  
+    // 构造函数  
+    ShallowCopyExample(const char* str) {  
+        data = new char[strlen(str) + 1];  
+        strcpy(data, str);  
+    }  
+  
+    // 拷贝构造函数（浅拷贝）  
+    ShallowCopyExample(const ShallowCopyExample& other) {  
+        data = other.data; // 浅拷贝：直接复制指针  
+    }  
+  
+    // 析构函数  
+    ~ShallowCopyExample() {  
+        delete[] data;  
+    }  
+  
+    // 其他成员函数...  
+    void print() const {  
+        std::cout << data << std::endl;  
+    }  
+};  
+  
+int main() {  
+    ShallowCopyExample obj1("Hello");  
+    ShallowCopyExample obj2 = obj1; // 使用浅拷贝的拷贝构造函数  
+  
+    obj2.data[0] = 'J'; // 修改obj2的数据  
+    obj1.print(); // 输出: Jello，因为obj1和obj2共享同一块内存  
+    obj2.print(); // 输出: Jello  
+  
+    // 注意：这里存在内存泄漏和双重释放的风险，因为两个对象都试图删除同一块内存  
+    // 为了避免这个问题，通常不建议实现浅拷贝的拷贝构造函数  
+}
+```
 
+深拷贝：
 
-Student(const Student &s){
-    name = s.name; //浅拷贝
-    name = new char(20); //深拷贝
-    memcpy(name,s.name,strlen(s.name));
+```c++
+class DeepCopyExample {  
+public:  
+    char* data;  
+  
+    // 构造函数  
+    DeepCopyExample(const char* str) {  
+        data = new char[strlen(str) + 1];  
+        strcpy(data, str);  
+    }  
+  
+    // 拷贝构造函数（深拷贝）  
+    DeepCopyExample(const DeepCopyExample& other) {  
+        data = new char[strlen(other.data) + 1]; // 分配新内存 ，递归复制char类型 
+        strcpy(data, other.data); // 复制数据  
+    }  
+  
+    // 析构函数  
+    ~DeepCopyExample() {  
+        delete[] data;  
+    }  
+  
+    // 赋值运算符重载（也需要实现深拷贝）  
+    DeepCopyExample& operator=(const DeepCopyExample& other) {  
+        if (this != &other) { // 自赋值检查  
+            delete[] data; // 释放旧内存  
+            data = new char[strlen(other.data) + 1]; // 分配新内存  
+            strcpy(data, other.data); // 复制数据  
+        }  
+        return *this;  
+    }  
+  
+    // 其他成员函数...  
+    void print() const {  
+        std::cout << data << std::endl;  
+    }  
+};  
+  
+int main() {  
+    DeepCopyExample obj1("Hello");  
+    DeepCopyExample obj2 = obj1; // 使用深拷贝的拷贝构造函数  
+  
+    obj2.data[0] = 'J'; // 修改obj2的数据  
+    obj1.print(); // 输出: Hello，因为obj1和obj2拥有独立的内存  
+    obj2.print(); // 输出: Jello  
+  
+    // 这里没有内存泄漏或双重释放的风险  
 }
 ```
 
@@ -2552,7 +2650,7 @@ Foo(const volatile &s);
 Foo(volatile &s);
 ```
 
-​	在建立对象时可用**同一类的另一个对象来初始化该对象的存储空间**，这是所用的构造函数成为拷贝构造函数。
+​	在建立对象时可用**同一类的另一个对象来初始化该对象的存储空间**，这是所用的构造函数称为拷贝构造函数。
 
 **需求**：
 
@@ -2588,8 +2686,8 @@ Person p = 10; //隐式法
 
 提供同类型的实参就能调用。
 
-* 1、已经创建好的对象来初始化新的对象；
-* 2、值传递的方式给函数参数传值（非引用情况下）；值传递的本质就是调用拷贝构造函数，创建一个新的对象。
+* 已经创建好的对象来初始化新的对象；
+* 值传递的方式给函数参数传值（非引用情况下）；值传递的本质就是调用拷贝构造函数，创建一个新的对象。
 
 ```c++
 void dowork(Person p){  //这里相当于创建了一个新的临时对象   
@@ -2600,7 +2698,7 @@ void test(){
 }
 ```
 
-* 3、以值返回的方式返回局部对象
+* 以值返回的方式返回局部对象
 	* 对于此类情况，只会发生在windows系统，在linux系统下，这样并不会调用拷贝构造函数
 
 
@@ -2740,6 +2838,10 @@ obj2 = obj1; // 赋值操作，调用赋值运算符重载
 
 * 在这个例子中，`obj2` 已经存在，赋值操作将 `obj1` 的状态赋值给 `obj2`，这会调用 `MyClass` 类的赋值运算符重载。
 * 因此，尽管拷贝初始化和赋值操作都涉及到对象之间的状态复制，但它们是不同的操作，并且分别调用了拷贝构造函数和赋值运算符重载。
+
+
+
+
 
 # 12、类
 
@@ -5111,8 +5213,8 @@ us.count(30); //0/1
 **unordered_map（hashmap）特性**：
 
 * map与multimap都是存储的key-value的值，可以通过key快速找到value，而unordered_map不会根据key值的大小进行排序。
-* unordered_map内部是无需的，存储时是根据key的hash值判断元素是否相等。
-* unordered_map采用拉链法解决hash冲突
+* unordered_map内部是无序的，存储时是根据key的hash值判断元素是否相等。
+* unordered_map采用拉链法解决hash冲突。
 
 **API：**
 
@@ -5121,22 +5223,23 @@ map<int,string> m;
 m.insert(pair<int,string>(18,"shabi")); //插入
 m.insert(make_pair(18,"shabi"));
 m.insert(map<int,string>::value_type(3,30));
-m[4] = 40;  //使用这种方式进行插入时，如果没有key=4的键，会自动生成这样一个键
+m[4] = 40;  	//使用这种方式进行插入时，如果没有key=4的键，会自动生成这样一个键
 for(map<int,string>::iterator it = m.begin();it != m.end();it++){  //遍历
 	cout << it->first << it->second << endl;
 }
-m.earse(3);  //删除传入key值
-m.find(3);  //按照键值查找，返回迭代器
+m.earse(3);  	//删除传入key值
+m.find(3);  	//按照键值查找，返回迭代器
 	map<int,string>::iterator ret = m.fin(3);
-	if(ret != m.end()){  cout << ret->first << ret->second << endl; }
-m.count(3); //统计key = 3
-m.lower_bound(keyElem); //返回第一个key>=keyElem的迭代器
+	if(ret != m.end())   	// 检查迭代器 it 是否还没有到达容器的末尾	
+    	{  cout << ret->first << ret->second << endl; }
+m.count(3); 	//统计key = 3
+m.lower_bound(keyElem); 	// 返回第一个key>=keyElem的迭代器
 	map<int,string>::iterator ret = m.lower_bound(keyElem);
 	if(ret != m.end()){  cout << ret->first << ret->second << endl; }
-m.upper_bound(keyElem); ////返回第一个key>keyElem的迭代器
+m.upper_bound(keyElem); 	// 返回第一个key>keyElem的迭代器
         map<int,string>::iterator ret = m.upper_bound(keyElem);
 		if(ret != m.end()){  cout << ret->first << ret->second << endl; }
-m.equal_range(keyElem); //同时返回容器中key与keyelem相等的上下限的两个迭代器
+m.equal_range(keyElem); 	// 同时返回容器中key与keyelem相等的上下限的两个迭代器
          pair<map<int,string>::iterator,map<int,string>::iterator> ret = m.equal_range(30);
          if(ret.first != s.end())
              cout << ret.first->first << ret.first->second << endl;  //返回第一个迭代器 = lower_bound的值
@@ -5177,22 +5280,6 @@ Map<String,int> mp = new Map("zhangsan",18);
 
 * 当向容器中添加元素时，会判断当前元素个数，如果≥阈值，即当前数组的长度乘以加载因子的值的时候，就要自动扩容。
 * 扩容就是重新计算容量，像hashmap中不断的添加元素。
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

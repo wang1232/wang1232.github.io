@@ -370,6 +370,38 @@ qt的对象都是new出来的，并不用显示的释放delete，这是由于**�
 
 ## 4 信号与信号槽
 
+### 4.1 概念
+
+* 信号和槽是qt通信的基础，信号是在某种情况下被发送的信号，槽就是对信号进行响应的函数。
+
+* 槽函数与信号进行关联，当信号被发射时，关联的槽函数被自动执行。
+
+* 信号和槽的关联是是使用connect()函数实现的
+
+	* connect()函数继承自槽函数Qobject，在实际调用时可以忽略前面的限定符
+	* 发送信号的对象（sender）和接收信号的对象（receiver）都必须是`QObject`或其子类的实例
+	* 信号和槽的参数必须匹配。这包括参数的类型和数量。
+
+	```c++
+	QObject::connect(sender, signal(),receiver, slot());
+	```
+
+	例：
+
+	```c++
+	QPushButton *button = new QPushButton("Click me");  
+	QObject::connect(button, &QPushButton::clicked, this, &MyClass::on_buttonClicked());  
+	// 槽函数定义  
+	void MyClass::on_buttonClicked()  
+	{  
+	    // 处理按钮点击事件  
+	}利用QT编写客户端，采用UDP/TCP通信完成客户端与服务器的数据传输。
+	```
+
+
+
+### 4.2 案例
+
 **案例：**
 
 > 下课后老师触发饿了信号
