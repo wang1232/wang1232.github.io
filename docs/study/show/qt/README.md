@@ -1542,13 +1542,25 @@ void Widget::recvSLOTS(){
 
 ​	**TCP服务器：**
 
-* 服务器先创建套接字：socket
-* 再绑定一个固定IP：bind
-* 设置监听：listen
-* 等待客户端连接：accept
-	* 套接字 (Socket)，就是**对网络中不同主机上的应用进程之间进行双向通信的端点的抽象**，是应用程序通过网络协议进行通信的接口，是应用程序与网络协议栈进行交互的接口
-* 客户端连接之后，接收和发送数据：read/write
-* 最终，关闭套接字：close
+1. 服务器先创建套接字：socket
+2. 再绑定一个固定IP和端口：bind
+3. 设置监听：listen
+	* 让套接字进入监听状态，并指定队列中最大连接数。监听传入的连接请求
+		* 在TCP/IP网络通信中，当服务器监听（`listen`）在特定的端口上时，它并不会立即与尝试连接的客户端建立连接。相反，服务器会维护一个**连接队列**（也称为**监听队列**或未完成连接队列），用于存放那些已经到达但尚未被服务器接受的客户端连接请求。
+		* 这个连接队列的工作机制大致如下：
+			1. **监听状态**：服务器通过调用`listen()`函数进入监听状态，并指定一个监听队列的大小（这个大小限制了可以同时等待处理的连接请求的最大数量）。
+			2. **连接请求到达**：当一个客户端尝试与服务器建立连接时，它会向服务器的IP地址和端口号发送一个**连接请求（SYN包）**。这个请求会被操作系统的网络协议栈捕获，并放入到服务器的监听队列中等待处理。
+			3. **接受连接**：服务器通过调用`accept()`函数来从监听队列中取出（或“接受”）一个连接请求。如果监听队列非空，`accept()`会立即返回一个已连接的套接字（也称为已建立的套接字），该套接字可以用于与客户端之间的数据交换。如果监听队列为空，`accept()`可能会阻塞（即等待），直到有新的连接请求到达并被放入队列中。
+			4. **数据交换**：一旦服务器接受了客户端的连接请求，它就可以通过返回的已连接套接字与客户端进行数据的读写操作了。
+			5. **关闭连接**：当数据传输完成或需要关闭连接时，服务器和客户端都会调用`close()`函数来关闭各自的套接字，释放相关资源。
+
+4. 等待客户端连接：accept()
+  * `accept()`函数会创建一个新的套接字（称为已连接套接字），用于与客户端进行通信。原始套接字（即监听套接字）则继续留在监听状态，接受来自其他客户端的连接请求。
+
+5. 客户端连接之后，接收和发送数据：read/write
+6. 最终，关闭套接字：close
+	* 先关闭连接套接字，再关闭监听套接字
+
 
 ​	**TCP客户端：**
 
@@ -2116,19 +2128,304 @@ void Widget::on_pushButton_2_clicked()
 
 ![image-20240416205927700](QT.assets/image-20240416205927700.png)
 
+#### windows和liunx通信
+
+在Windows和Linux上，关于TCP Socket通信的底层实现确实存在一些差异，但这些差异主要体现在操作系统层面，而不是直接体现在“套接字”和“文件描述符”这两个术语的使用上。实际上，在Linux和Windows上，无论是使用Qt框架还是直接调用系统API，进行TCP Socket通信时都会涉及到套接字（Socket）和文件描述符（File Descriptor）的概念，尽管它们在不同的操作系统中可能有不同的实现细节。
+
+**套接字**（Socket）
+
+套接字是网络通信中的一个端点，它允许两个或多个进程之间进行通信。套接字通过网络协议栈（如TCP/IP）进行数据的收发。在Windows和Linux上，套接字都是网络通信的基础。
+
+**文件描述符（File Descriptor）**
+
+文件描述符是一个非负整数，它是一个索引值，指向内核中每个进程打开文件的记录表。在Unix-like系统（包括Linux）中，一切皆文件，包括套接字、管道、目录等，因此它们都可以通过文件描述符来访问。在Windows中，虽然不直接使用“文件描述符”这个术语，但Windows句柄（Handle）在概念上与文件描述符相似，它们都用于标识和访问底层资源。
+
+**Windows 上的 Qt TCP Socket 通信**
+
+在Windows上，使用Qt进行TCP Socket通信时，Qt封装了底层的Windows Sockets（Winsock）API。当你创建一个`QTcpServer`或`QTcpSocket`对象时，Qt会在内部为你创建一个套接字（Socket），并管理与之相关的资源。尽管你不需要直接处理文件描述符或Winsock句柄，但Qt在背后确实使用了它们。
+
+**Linux 上的 Socket TCP 通信**
+
+在Linux上，进行TCP Socket通信时，你会直接与系统调用（如`socket()`, `bind()`, `listen()`, `accept()`, `read()`, `write()`, `close()`）打交道。这些系统调用返回或接受文件描述符作为参数，用于标识和访问套接字。在Linux中，套接字通过文件描述符来管理，这使得套接字与文件、管道等其他I/O资源在底层有了统一的接口。
+
+**总结**
+
+无论是Windows上的Qt TCP Socket通信还是Linux上的Socket TCP通信，它们都是基于套接字的网络通信方式。在Windows上，Qt为你封装了底层的复杂性；而在Linux上，你通常会直接与系统调用打交道，使用文件描述符来管理套接字。尽管术语和API有所不同，但它们的根本目的是相同的：在网络上的两个或多个进程之间建立通信链路，并传输数据。
+
+
+
+
+
 
 
 ### 2.3 多线程网络通信
 
 [Qt中多线程的使用 | 爱编程的大丙 (subingwen.cn)](https://subingwen.cn/qt/thread/)
 
-#### 2.3.1 客户端设计
+#### 2.3.1 QThread
+
+Qt中提供了一个线程类QThread，通过这个类就可以创建子线程了，Qt中一共提供了两种创建子线程的方式，对于qt多线程发送文件和接收文件都要在**子线程**操作：
+
+* **方法1：**通过QThread创建子类（子线程）
+	* 这种方法涉及创建`QThread`的一个子类，并重写其`run()`方法。在这个`run()`方法中，你将执行需要在新线程中运行的代码，比如文件发送或接收。
+* **方法2：**通过Qbject派生工作类
+	* 创建一个继承自`QObject`的类，用于封装实际的文件发送和接收逻辑，并通过`moveToThread()`将这个类的实例移动到`QThread`中。
+
+
+
+**方法1案例：**
+
+```c++
+// 1. 创建一个线程类的子类，让其继承QT中的线程类 QThread，比如:
+class MyThread:public QThread
+{
+    ......
+}
+// 2.重写父类的 run() 方法，在该函数内部编写子线程要处理的具体的业务流程
+class MyThread:public QThread
+{
+    ......
+ protected:
+    void run()
+    {
+        ........
+    }
+}
+//3. 在主线程中创建子线程对象，new 一个就可以了
+MyThread * subThread = new MyThread;
+//4. 启动子线程, 调用 start() 方法
+subThread->start();
+```
+
+* 不能在类的外部调用run() 方法启动子线程，在外部调用start()相当于让run()开始运行
+
+* 当子线程被创建出来之后，父子线程之间的通信可以通过信号槽的方式，注意事项:
+
+	* 在Qt中在子线程中不要操作程序中的窗口类型对象, 不允许, 如果操作了程序就挂了
+	* 只有主线程才能操作程序中的窗口对象, 默认的线程就是主线程, 自己创建的就是子线程
+
+
+
+**方法2案例：**
+
+```c++
+//1. 创建一个新的类，让这个类从QObject派生
+class MyWork:public QObject
+{
+    .......
+}
+//2. 在这个类中添加一个公共的成员函数，函数体就是我们要在子线程中执行的业务逻辑
+class MyWork:public QObject
+{
+public:
+    .......
+    // 函数名自己指定, 叫什么都可以, 参数可以根据实际需求添加
+    void working();
+}
+//3. 在主线程中创建一个QThread对象, 这就是子线程的对象
+QThread* sub = new QThread;
+//4. 在主线程中创建工作的类对象（千万不要指定给创建的对象指定父对象）
+MyWork* work = new MyWork(this);    // error
+MyWork* work = new MyWork;          // ok
+//5.将MyWork对象移动到创建的子线程对象中, 需要调用QObject类提供的moveToThread()方法
+	// void QObject::moveToThread(QThread *targetThread);
+	// 如果给work指定了父对象, 这个函数调用就失败了
+	// 提示： QObject::moveToThread: Cannot move objects with a parent
+work->moveToThread(sub);	// 移动到子线程中工作
+```
+
+* 启动子线程，调用 start(), 这时候线程启动了, 但是移动到线程中的对象并没有工作
+
+* 调用MyWork类对象的工作函数，让这个函数开始执行，这时候是在移动到的那个子线程中运行的
+
+	
+
+**moveToThread** 的解释：
+
+* **定义**：在Qt框架中，moveToThread是一个方法，用于将QObject派生类的对象移动到指定的QThread线程中执行。这主要用于多线程编程中，以解决如UI线程阻塞、提高程序响应速度等问题。
+* **使用场景**：在Qt的多线程编程中，只有继承了QObject类的对象才能使用moveToThread方法进行线程切换。使用此方法可以使得对象在指定的线程中运行，从而避免在UI线程或其他关键线程中执行耗时的操作。
+* **注意事项**：在执行moveToThread之前，需要确保目标线程已经启动。在目标线程中访问该对象时，通常需要使用信号槽机制或QMetaObject::invokeMethod来进行调用，以确保线程安全。
+
+#### 2.3.2 常用API：
+
+**常用共用成员函数：**
+
+```c++
+// QThread 类常用 API
+// 构造函数
+QThread::QThread(QObject *parent = Q_NULLPTR);
+// 判断线程中的任务是不是处理完毕了
+bool QThread::isFinished() const;
+// 判断子线程是不是在执行任务
+bool QThread::isRunning() const;
+
+// Qt中的线程可以设置优先级
+// 得到当前线程的优先级
+Priority QThread::priority() const;
+void QThread::setPriority(Priority priority);
+优先级:
+    QThread::IdlePriority         --> 最低的优先级
+    QThread::LowestPriority
+    QThread::LowPriority
+    QThread::NormalPriority
+    QThread::HighPriority
+    QThread::HighestPriority
+    QThread::TimeCriticalPriority --> 最高的优先级
+    QThread::InheritPriority      --> 子线程和其父线程的优先级相同, 默认是这个
+// 退出线程, 停止底层的事件循环
+// 退出线程的工作函数
+void QThread::exit(int returnCode = 0);
+// 调用线程退出函数之后, 线程不会马上退出因为当前任务有可能还没有完成, 调回用这个函数是
+// 等待任务完成, 然后退出线程, 一般情况下会在 exit() 后边调用这个函数
+bool QThread::wait(unsigned long time = ULONG_MAX);
+```
+
+
+
+**信号槽：**
+
+```c++
+// 和调用 exit() 效果是一样的
+// 代用这个函数之后, 再调用 wait() 函数
+[slot] void QThread::quit();
+// 启动子线程
+[slot] void QThread::start(Priority priority = InheritPriority);
+// 线程退出, 可能是会马上终止线程, 一般情况下不使用这个函数
+[slot] void QThread::terminate();
+
+// 线程中执行的任务完成了, 发出该信号
+// 任务函数中的处理逻辑执行完毕了
+[signal] void QThread::finished();
+// 开始工作之前发出这个信号, 一般不使用
+[signal] void QThread::started();
+```
+
+
+
+**静态函数：**
+
+```c++
+// 返回一个指向管理当前执行线程的QThread的指针
+[static] QThread *QThread::currentThread();
+// 返回可以在系统上运行的理想线程数 == 和当前电脑的 CPU 核心数相同
+[static] int QThread::idealThreadCount();
+// 线程休眠函数
+[static] void QThread::msleep(unsigned long msecs);	// 单位: 毫秒
+[static] void QThread::sleep(unsigned long secs);	// 单位: 秒
+[static] void QThread::usleep(unsigned long usecs);	// 单位: 微秒
+
+```
+
+
+
+**任务处理函数**：
+
+```c++
+// 子线程要处理什么任务, 需要写到 run() 中
+[virtual protected] void QThread::run();
+```
+
+
+
+#### 2.3.3 客户端设计
+
+1. 首先创建sendfile发送文件类继承自object类
+
+2. 在类中创建两个工作函数（业务逻辑），分别是连接服务器connectServer和发送文件SendFile
+
+3. 创建线程对象和任务对象
+
+	```c++
+	//创建线程对象
+	QThread *t = new QThread;
+	//创建任务对象
+	sendFile *worker = new sendFile;
+	```
+
+4. 将任务对象移动到创建的子线程对象中
+
+	```c++
+	 worker->moveToThread(t);
+	```
+
+5. 编写处理连接服务器和发送文件的函数
+
+	* 连接服务器
+
+		* 获取输入的IP和port
+
+		* 当前窗口点击连接服务器发送了一个任务开始的信号给任务对象，让任务对象的工作函数开始执行
+
+			```c++
+			//连接服务器信号发射函数
+			void MainWindow::on_pushButton_clicked()
+			{
+			    QString ip = ui->lineEdit->text();
+			    unsigned short port = ui->lineEdit_2->text().toUShort();
+			    emit startconnect(port,ip); //发送信号让任务对象的工作函数开始执行
+			}
+			```
+
+		* 绑定信号和槽函数，信号是从当前窗口(主线程)发出，由子线程中的任务对象worker接收
+
+			```c++
+			connect(this,&MainWindow::startconnect,worker,&sendFile::connectServer);
+			```
+
+		* 实现具体的槽函数：连接服务器（TCP连接）
+
+			```c++
+			//子线程的任务对象连接服务器
+			void sendFile::connectServer(unsigned short port, QString ip)
+			{
+			    m_tcp= new QTcpSocket;
+			    m_tcp->connectToHost(QHostAddress(ip),port);
+			    //检测连接是否成功
+			    connect(m_tcp,&QTcpSocket::connected,this,&sendFile::connectOK);
+			    connect(m_tcp,&QTcpSocket::disconnected,this,[=](){
+			        m_tcp->close();
+			        m_tcp->deleteLater();
+			        //发送信号给主线程,服务器和客户端断开连接
+			        emit oversconnect();
+			    });
+			}
+			```
+
+		* 接着处理任务对象连接服务器发送的信号
+
+			```c++
+			    //处理worker发送的信号
+			    //接收到任务对象函数的连接成功信号
+			    connect(worker,&sendFile::connectOK,this,[=](){
+			        QMessageBox::information(this,"连接服务器","已经成功连接服务器，恭喜");
+			    });
+			    //接收到任务对象函数的连接失败信号
+			    connect(worker,&sendFile::oversconnect,this,[=](){
+			        //资源释放
+			        t->quit();
+			        t->wait();
+			        worker->deleteLater();
+			        t->deleteLater();
+			    });
+			    //根据信号的百分比，来更新进度条的数据
+			    connect(worker,&sendFile::curPercent,ui->progressBar,&QProgressBar::setValue);
+			```
+
+6. 启动线程
+
+7. 在子线程中调用任务对象的工作函数
+
+	
 
 ![image-20240423213102670](QT.assets/image-20240423213102670.png)
 
 添加c++ class类文件，**父类一定要选Object。**
 
 ![image-20240423213415150](QT.assets/image-20240423213415150.png)
+
+
+
+
 
 **sendFile.h**
 
@@ -2160,13 +2457,72 @@ signals:
 
 sendFile.cpp
 
-```
+```c++
+#include "sendfile.h"
+#include <QHostAddress>
+#include <QFileInfo>
+#include <QFile>
+
+sendFile::sendFile(QObject *parent)
+    : QObject{parent}
+{
+
+}
+
+//子线程的任务对象连接服务器
+void sendFile::connectServer(unsigned short port, QString ip)
+{
+    m_tcp= new QTcpSocket;
+    m_tcp->connectToHost(QHostAddress(ip),port);
+    //检测连接是否成功
+    connect(m_tcp,&QTcpSocket::connected,this,&sendFile::connectOK);
+    connect(m_tcp,&QTcpSocket::disconnected,this,[=](){
+        m_tcp->close();
+        m_tcp->deleteLater();
+        //发送信号给主线程,服务器和客户端断开连接
+        emit oversconnect();
+    });
+}
+//发送文件
+void sendFile::SendFile(QString path)
+{
+    //怎么让服务器知道文件发送完毕
+    //通过将文件大小发送给服务器，服务器接收时进行累加，累加到和原本一样大时，接收完毕
+    QFile file(path);
+    QFileInfo info(path);  //通过路径获取文件
+    int filesize = info.size(); //获取文件大小
+
+    file.open(QFile::ReadOnly);
+
+    while(!file.atEnd())  //读文件
+    {
+        static int num = 0;  //文件大小只需要在发送文件之前发送一次即可，即在while的第一次便发给服务器
+        if(num == 0){
+            m_tcp->write((char*)&filesize,4); //将整型转换为字符串型，并指定文件大小
+        }
+        QByteArray line = file.readLine();
+        num += line.size(); //对发送的数据进行累加
+        int percent = (num *100/filesize); //计算累加数据的百分比
+        emit curPercent(percent); //将百分比发送给主线程
+
+        m_tcp->write(line); //通过套接字对象发送数据给服务器
+    }
+}
 
 ```
 
 mainwindow.h
 
 ```c++
+#ifndef MAINWINDOW_H
+#define MAINWINDOW_H
+
+#include <QMainWindow>
+
+QT_BEGIN_NAMESPACE
+namespace Ui { class MainWindow; }
+QT_END_NAMESPACE
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -2174,16 +2530,22 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
-    
+
 private slots:
     void on_pushButton_clicked();
-    
+
+    void on_pushButton_2_clicked();
+
+    void on_pushButton_3_clicked();
+
 signals:
     void startconnect(unsigned short,QString);  //添加启动任务对象中函数的信号，即根据ip和port连接后开始任务操作
-    
+    void sendFile1(QString path); //子线程中的任务对象，点击发送文件按钮发出发送文件的信号
 private:
     Ui::MainWindow *ui;
 };
+#endif // MAINWINDOW_H
+
 ```
 
 mainwindow.cpp
@@ -2191,7 +2553,10 @@ mainwindow.cpp
 ```c++
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-
+#include <QThread>
+#include "sendfile.h"
+#include <QMessageBox>
+#include <QFileDialog>
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -2204,12 +2569,71 @@ MainWindow::MainWindow(QWidget *parent)
     //进度条0-100
     ui->progressBar->setRange(0,100); //进度条范围
     ui->progressBar->setValue(0); //初始值为0
-    
+
+    //创建线程对象
+    QThread *t = new QThread;
+    //创建任务对象
+    sendFile *worker = new sendFile;
+    //将任务对象worker移动到子线程中去，worker对象的操作就会在子线程中
+    //此时worker对象的操作有connectServer和SendFile
+    worker->moveToThread(t);
+
+    //当前窗口点击连接服务器发送了一个任务开始的信号给任务对象
+    //任务对象绑定连接服务器函数
+    //因此，信号是从当前窗口(主线程)发出，由子线程中的任务对象worker接收
+    connect(this,&MainWindow::startconnect,worker,&sendFile::connectServer);
+
+    //发送文件信号
+    connect(this,&MainWindow::sendFile1,worker,&sendFile::SendFile);
+
+    //处理worker发送的信号
+    //连接成功信号
+    connect(worker,&sendFile::connectOK,this,[=](){
+        QMessageBox::information(this,"连接服务器","已经成功连接服务器，恭喜");
+    });
+    //连接失败信号
+    connect(worker,&sendFile::oversconnect,this,[=](){
+        //资源释放
+        t->quit();
+        t->wait();
+        worker->deleteLater();
+        t->deleteLater();
+    });
+
+    //根据信号的百分比，来更新进度条的数据
+    connect(worker,&sendFile::curPercent,ui->progressBar,&QProgressBar::setValue);
+
+    //启动线程
+    t->start();
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+//连接服务器
+void MainWindow::on_pushButton_clicked()
+{
+    QString ip = ui->lineEdit->text();
+    unsigned short port = ui->lineEdit_2->text().toUShort();
+    emit startconnect(port,ip); //发送信号让任务对象的工作函数开始执行
+}
+
+//选择文件
+void MainWindow::on_pushButton_2_clicked()
+{
+    QString path = QFileDialog::getOpenFileName();
+    if(path.isEmpty()){
+        QMessageBox::warning(this,"打开文件","选择的文件路径不能为空");
+    }
+    ui->lineEdit_3->setText(path);
+}
+
+//发送文件：并不是在主线程做的，而是子线程中做的
+void MainWindow::on_pushButton_3_clicked()
+{
+    emit sendFile1(ui->lineEdit_3->text());  //发送信号，参数为文件路径
 }
 ```
 
@@ -2217,7 +2641,7 @@ MainWindow::~MainWindow()
 
 
 
-#### 2.3.2  服务器端设计
+#### 2.3.4  服务器端设计
 
 基于子线程去接收文件
 
