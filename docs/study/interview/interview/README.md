@@ -203,13 +203,13 @@
 		```
 
 
-	* **QScopedPointer**：
+* **QScopedPointer**：
 
-		* 提供独占所有权的智能指针，当 `QScopedPointer` 超出作用域时，指向的对象会自动被删除。
+	* 提供独占所有权的智能指针，当 `QScopedPointer` 超出作用域时，指向的对象会自动被删除。
 
-		* 适用于需要确保对象在特定作用域结束时自动销毁的场景。
+	* 适用于需要确保对象在特定作用域结束时自动销毁的场景。
 
-			```c++
+		```c++
 			#include <QScopedPointer>
 			
 			class MyObject {
@@ -229,14 +229,14 @@
 			
 			    return a.exec();
 			}
-			```
+		```
 
 
-	* **QPointer**：
+* **QPointer**：
 
-		* 是一个指向 **QObject** 派生类的弱指针，可以用于跟踪 QObject 对象。当 QObject 被销毁时，`QPointer` 会自动将其指针值设置为 `nullptr`，从而避免使用悬空指针。
+	* 是一个指向 **QObject** 派生类的弱指针，可以用于跟踪 QObject 对象。当 QObject 被销毁时，`QPointer` 会自动将其指针值设置为 `nullptr`，从而避免使用悬空指针。
 
-		* 适用于需要**跟踪 QObject 对象生命周期**的场景。
+	* 适用于需要**跟踪 QObject 对象生命周期**的场景。
 
 			```c++
 			#include <QPointer>
@@ -272,15 +272,15 @@
 			```
 
 
-	* **std::unique_ptr** (C++11标准库)：
-		* 提供独占所有权的智能指针，确保同一时间只有一个 `std::unique_ptr` 可以指向某个对象，当 `std::unique_ptr` 被销毁时，对象也会被自动删除。
-		* 适用于明确需要独占所有权且无需共享的场景。
+* **std::unique_ptr** (C++11标准库)：
+	* 提供独占所有权的智能指针，确保同一时间只有一个 `std::unique_ptr` 可以指向某个对象，当 `std::unique_ptr` 被销毁时，对象也会被自动删除。
+	* 适用于明确需要独占所有权且无需共享的场景。
 
-	* **std::shared_ptr** (C++11标准库)：
+* **std::shared_ptr** (C++11标准库)：
 
-		* 提供共享所有权的智能指针，多个 `std::shared_ptr` 可以指向同一个对象，并通过引用计数管理对象的生命周期。
+	* 提供共享所有权的智能指针，多个 `std::shared_ptr` 可以指向同一个对象，并通过引用计数管理对象的生命周期。
 
-		* 适用于跨模块或线程共享对象的场景。
+	* 适用于跨模块或线程共享对象的场景。
 
 13 QT所使用的线程是如何被析构的
 
@@ -546,7 +546,6 @@ socket.connectToServer("MyLocalServer");
 **示例：**
 
 ```
-cpp复制代码QProcess process;
 process.start("externalApp");
 process.write("input data");
 connect(&process, &QProcess::readyReadStandardOutput, [&]() {
@@ -565,7 +564,7 @@ connect(&process, &QProcess::readyReadStandardOutput, [&]() {
 **示例：**
 
 ```
-cpp复制代码// 服务器端
+// 服务器端
 QTcpServer server;
 connect(&server, &QTcpServer::newConnection, [&]() {
     QTcpSocket *socket = server.nextPendingConnection();
