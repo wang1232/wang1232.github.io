@@ -6,6 +6,7 @@
     * [📃网络原理](study/c++/net/)
     * [📃leetcodes](study/c++/leetcodes/)
     * [📃设计模式](study/c++/desgin/)  
+    * [📃MySQL](study/c++/mysql/)     
   * [📁界面](study/show/)
     * [📃MFC](study/show/mfc/)
     * [📃QT](study/show/qt/)
