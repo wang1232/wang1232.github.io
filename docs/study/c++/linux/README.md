@@ -41,7 +41,7 @@ which ls  -->/usr/bin/ls
 
 创建目录的默认权限 **drwxrwxrwx**
 
-![image-20240328210351695](C++基础.assets/image-20240328210351695.png)
+![image-20240328210351695](LINUX.assets/image-20240328210351695.png)
 
 权限每三个为一组二进制数，更改为那种权限，只需要更改数字即可。
 
@@ -51,7 +51,7 @@ chmod 143 ./test/test.txt -R  # -R的作用是将该目录（test）下所有的
 chmod -R 777 文件夹    
 ```
 
-![image-20240328210709500](C++基础.assets/image-20240328210709500.png)
+![image-20240328210709500](LINUX.assets/image-20240328210709500.png)
 
 **kill**：杀死进程
 
@@ -62,7 +62,7 @@ pkill -9 进程名称
 
 **vim:**
 
-![image-20240328212143173](C++基础.assets/image-20240328212143173.png)
+![image-20240328212143173](LINUX.assets/image-20240328212143173.png)
 
 ```c++
 	dd:删除光标行  //数字+dd-->剪切几行
