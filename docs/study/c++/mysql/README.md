@@ -1805,7 +1805,18 @@ set global transaction isolation level read uncommitted;
 
 
 
-### 6.2 实现原理
+### 6.2 **索引分类**
+
+索引是各种数据库进行优化的重要手段。优化的时候优先考的因素就是索引，索引在数据库当中的分类：
+
+* **单一索引:**一个字段上添加索引。
+* **复合索引:** 两个字段或者更多的字段上添加索引。
+* **主键索引:**主键上添加索引。
+* **唯一性索引:** 具有unique约束的字段上添加索引，但是索引效率不高（都唯一了还索引个p）
+
+
+
+### 6.3 实现原理
 
 * **提醒1：**在任何数据库当中主键上都会自动添加索引对象，另外在mysql当中，一个字段上如果有unique约束的话，也会自动创建索引对象。
 
@@ -1832,4 +1843,141 @@ set global transaction isolation level read uncommitted;
 * 数据量庞大（根据硬件环境不同）
 * 该字段经常出现在where后面，以条件的形式存在，也就是该字段经常被扫描
 * 该字段很少的DML操作（因为DML之后，索引需要重新排序）
+
+
+
+**创建索引**：
+
+要给room表里的name字段加上索引：
+
+```sql
+create index 索引名称 on 表名(字段名);
+create index room_name_index on room(name);
+```
+
+**删除索引**：
+
+```sql
+drop index 索引名称 on 表名;
+drop index room_name_index on room;
+```
+
+**查看sql语句是否使用索引进行检索**：
+
+```sql
+explain select * from t_room where t_name = '吴京';
+```
+
+![在这里插入图片描述](MySQL.assets/b294329e4efc33ad45f8924950c64290.png)
+
+* `id`：查询的标识符，如果查询包含子查询或联合（UNION），则每个子查询或联合部分都会有一个唯一的ID。
+* `select_type`：查询的类型，比如SIMPLE（简单SELECT，不使用UNION或子查询等）。
+* `table`：被查询的表名。
+* `partitions`：查询将访问的分区（如果表是分区表的话）。
+* `type`：连接类型，对于单表查询，它通常表示如何查找行（比如ALL表示全表扫描，ref表示使用非唯一性索引或唯一性索引的前缀来查找单个匹配行）。
+* `possible_keys`：显示可能应用在这张表上的索引，以便找到需要的行。
+* `key`：**实际使用的索引。如果为NULL，则没有使用索引。**
+* `key_len`：**使用的索引的长度**。在不是所有的索引列都被查询的情况下，这是决定性能的一个重要因素。
+* `ref`：显示索引的哪一列或常量被用于查找值。
+* `rows`：MySQL认为必须检查的用来返回请求数据的行数。
+* `filtered`：表示返回结果的行占开始找到符合表条件的行的百分比。
+* `Extra`：包含不适合在其他列中显示但对执行计划非常重要的额外信息。
+
+添加了索引后：
+
+![在这里插入图片描述](MySQL.assets/a6ddf2e9db74b7a07b7b96121faf0958.png)
+
+
+
+**index_merge:**
+
+* 我们的 where 中可能有多个条件(或者join)涉及到多个字段，
+	* 它们之间进行 AND 或者 OR，那么此时就有可能会使用到 index merge 技术。
+* index merge 技术如果简单的说，其实就是：
+	* 对多个索引分别进行条件扫描，然后将它们各自的结果进行合并(intersect/union)。
+
+
+
+**索引的失效**：
+
+* 模糊查询以%开头时
+
+	```sql
+	select * from t_room where t_name like '%T';
+	```
+
+	* 这里即使t_name加上索引，也不会走索引，因为走索引必须避免“%”开始！这是一种优化的手段/策略。当使用模糊查询且以百分号为开头，索引便会失效。
+
+* 使用or的时候，要求or两边的字段必须都要有索引，才会走索引，如果有其中有一个字段没有字段，那么另一个字段索引也会失效。
+
+* 使用复合索引的时候没有使用左侧的列查找，索引失效
+
+	* 复合索引：两个字段或者更多的字段联合起来添加一个索引，叫做复合索引。
+
+	```sql
+	create index 索引名 on 表名(字段名1，字段名2);
+	```
+
+	* 那么查询时只有使用左边的字段名1查询才会用到索引，利用字段2查询便会失效。
+
+* 当where当中的索引列参加了运算，索引失效。
+* 在where当中索引列使用了函数。
+* 类型转换时索引失效。
+
+
+
+## 7 视图
+
+### 7.1 概念
+
+* view：视图即从不同的角度看待同一份数据。
+* 我们可以面向视图对象进行增删改查，对视图对象的增删改查，会导致原表被操作!
+
+* 注意：只有[DQL](https://so.csdn.net/so/search?q=DQL&spm=1001.2101.3001.7020)（查询）语句才能以view的形式创建。
+
+### 7.2 操作
+
+**创建视图**：
+
+将一个表的查询结果当做视图
+
+```sql
+create view table_view as select * from table;
+```
+
+**创建视图对象：**
+
+```sql
+create view_table_view as select * from table_view;
+```
+
+**删除视图：**
+
+```sql
+drop view table_view;
+```
+
+
+
+## **8 DBA**
+
+**新建用户：**
+
+```sql
+create user wanglei indentified by '123456';
+```
+
+**数据的导入导出**（数据备份）：导出,导出时不必要登录数据库，直接在终端窗口进行导入。
+
+```sql
+mysqldump -uroot 数据库名 > 存放位置\备份文件名.sql -uroot -p你的密码 
+mysql dump test_wl>E:\test_wl.sql -uroot -p123456;
+```
+
+**导入**
+
+```sql
+source 文件路径/文件名
+source E:\test_wl.sql
+```
 
