@@ -54,7 +54,7 @@
 
 堆和栈都是程序运行时才分配的空间。
 
-## 1.2、C++内存六区模型
+## 1.2、C++内存六区模型 
 
 栈、堆、自由存储区、全局/静态存储区、常量存储区、代码区
 
@@ -820,7 +820,7 @@ molloc/free底层是通过brk、mmap、munmap实现的
 
 ## 4.7、delete p、delete [] p、allocator的区别
 
-* `delete p` 用于释放通过 `new` 操作符分配的**单个对象**的内存，p是一个指向数据类型的指针。
+* `delete p` 用于释放通过 `new` 操作符分配的**单个对象**的内存，p是一个指向数据类型的指针，只会调用一次析构函数。
 * `delete[] p` 用于释放通过 `new[]` 操作符分配的**对象数组**的内存，`p` 是一个指向 `int` 数组的指针
 * 动态数组管理new一个数组时，[]必须是一个整数，但是不一定是常量整数，普通数组必须是一个常量整数。
 * new动态数组返回的不是数组类型，而是一个元素类型的指针，**指向数据类型的数组的第一个元素的地址。**
@@ -874,6 +874,29 @@ molloc/free底层是通过brk、mmap、munmap实现的
 
 * molloc/free和new/delete都是申请内存和回收内存的
 * 对于非基本类型的对象使用的时候，**对象创建和销毁的需要执行构造函数和析构函数**，而molloc/free是库函数，已经编译好的代码，强加不合适。
+
+
+
+## 4.9 operator new和malloc
+
+* 所有的**空间配置（allocator）最终都会到底层实现的malloc**
+
+
+
+```c++
+void *operator new(){
+	
+
+}
+```
+
+
+
+
+
+
+
+
 
 
 
@@ -1284,7 +1307,10 @@ int main(){
 
 
 
+## 8.3 全局变量和static变量的区别
 
+* 全局变量和静态变量都存放在全局/静态存储区。
+* 全局变量的作用域是整个源程序，项目的其他源文件在各个源文件都是有效的。静态变量的作用域只在定义该变量的源文件内有效。
 
 
 
@@ -2103,7 +2129,7 @@ int main() {
 * 向下类型转换（基类指针转换为派生类指针）不会自动进行，因为一个基类对应好多派生类，所以**向下类型转换必须加动态类型识别技术**，RTTI技术，用dynamic_cast进行向下类型转换。
 * 是C++语言的一个特性，它允许程序在运行时查询对象的实际类型。
 * RTTI提供了两个主要的运算符：`dynamic_cast`和`typeid`，以及`type_info`类，它们一起工作以在运行时确定对象的类型。
-* 运行阶段类型识别（RTTI）**为程序在运行阶段确定对象的类型**，**保证安全的类型转换**，只适用于包含虚函数的类，即继承层次结构中的多态对象1
+* 运行阶段类型识别（RTTI）**为程序在运行阶段确定对象的类型**，**保证安全的类型转换**，只适用于包含虚函数的类，即继承层次结构中的多态对象
 
 #### **dynamic_cast**
 
@@ -2121,7 +2147,6 @@ int main() {
   * dynamic_cast 可以用于引用，但是，没有与空指针对应的引用值（引用的目标不能是空指针），如果转换请求不正确，会出现 bad_cast 异常。
   	* 如果转换无法进行（比如基类指针不指向派生类对象），它会**返回空指针（对于指针类型）**或者**抛出`std::bad_cast`异常（对于引用类型）**
   
-
   **语法：**派生类指针 = dynamic_cast<派生类类型 *>(基类指针);
   
   基类指针可以调用派生类对象，如何知道基类指针所指向的是那种派生类的对象呢？
@@ -3917,7 +3942,7 @@ C++的语言机制保证了，当一个对象创建的时候，会自动调用�
 
 ## 16.2、零拷贝
 
-* 零拷贝是一种数据传输技术，用于减少数据在用户空间和内核空间之间的拷贝次数，从而提高数据传输的效率。在传统的数据传输中，数据可能需要多次在内核空间和用户空间之间拷贝，这不仅增加了CPU的负担，也延长了数据传输的时间。
+* 零拷贝是一种数据传输技术，用于**减少数据在用户空间和内核空间之间的拷贝次数**，从而提高数据传输的效率。在传统的数据传输中，数据可能需要多次在内核空间和用户空间之间拷贝，这不仅增加了CPU的负担，也延长了数据传输的时间。
 * 一种避免CPU将数据从一块内存拷贝到另一块存储的技术
 * 可以减少数据拷贝和共享总线操作的次数
 
@@ -4197,14 +4222,14 @@ int main() {
 
 # **19、lambda表达式**
 
-匿名函数/闭包，用于定义并创建匿名的函数对象
+匿名函数/闭包，用于定义并创建匿名的函数对象，可以方便的让别的函数调用。
 
-* 变量捕获：可以捕获、修改（按照引用捕获）外部变量
-	* 写法：
-		* [&] 所有变量都按引用捕获，函数体内可以使用lambda所在范围内所有可见的局部变量
-		* [=] 所有变量都按值捕获，函数体内可以使用lambda所在范围内所有可见的局部变量
+* 变量捕获：让匿名函数可以捕获、**修改（按照引用捕获）外部变量**
+	* 写法：在[]内部写一些外部变量，在匿名函数内部可以进行操作运算
+		* [&] **所有变量都按引用捕获**（引用传递），函数体内可以使用lambda所在范围内所有可见的局部变量
+		* [=] 所有变量都**按值捕获**（值传递），函数体内可以使用lambda所在范围内所有可见的局部变量
 		* [&,=N] 按值捕获N，其他变量都按照引用捕获
-		* [this] 在类中捕获当前实例的指针，可以使用lambda所在类中的成员变量
+		* [this] 在类中**捕获当前实例的指针**，可以使用lambda所在类中的成员变量
 
 ![image-20240412192943322](全栈_C++.assets/image-20240412192943322.png)
 
@@ -4223,8 +4248,13 @@ auto g = [N,&M](int i){
 	M = 20;
 	return N*i;
 }
-g(10); //1000
-M; //20
+g(10); 	//1000
+M; 		//20
+//c++14新特性：参数列表支持auto
+auto g = [&](auto i){
+	M = 20;
+    return N*i;
+}
 ```
 
 
@@ -4239,15 +4269,19 @@ M; //20
 
 友元提供了不同类的成员函数之间、类的成员函数和一般函数之间进行数据共享的机制。
 
+
+
 ## 20.1、友元函数
 
 * 类中friend修饰的函数
+	* `friend`关键字用于声明友元函数或友元类。当一个函数被声明为某个类的友元时，这个函数可以访问该类的所有私有（private）和保护（protected）成员，就像它是类的一个成员函数一样。但是，这个友元函数并不是类的成员函数，它可以在类定义之外定义，也不需要是任何类的成员函数。
+
 * 普通函数是友元函数
 * 友元赋予友元函数中的**对象**具有打破权限的一个功能，并不是能够直接访问类中的数据，因此要访问类中的数据，**必须传入一个对象或者定义一个对象。**
-	* 以一个对象为参数或者在当前函数中定义的对象
-	* **友元函数不属于任何类**，是定义在类外的函数，不受类的权限限定。
-	* 必须是友元函数中的对象才可以访问类中的任何属性的数据成员，即使返回该对象也脱离了友元函数，不再具有友元属性。
-	* **一个函数可以是多个类的友元函数**，但必须在每个类中进行声明。
+  * 以一个对象为参数或者在当前函数中定义的对象
+  * **友元函数不属于任何类**，是定义在类外的函数，不受类的权限限定。
+  * 必须是友元函数中的对象才可以访问类中的任何属性的数据成员，即使返回该对象也脱离了友元函数，不再具有友元属性。
+  * **一个函数可以是多个类的友元函数**，但必须在每个类中进行声明。
 
 ```c++
 class person{
@@ -4261,7 +4295,7 @@ private:
 	cout << "你好" << endl;
     }
 };
-int func(int x.person &per){  //类外定义，传入对象，访问private成员
+int func(int x,person &per){  //类外定义，传入对象，访问private成员
     per.age = x;
     per.print_test();
     person p; //创建临时对象也可以访问
@@ -4269,7 +4303,7 @@ int func(int x.person &per){  //类外定义，传入对象，访问private成�
     p.print_test();
 	return per.age;
 }
-int func2(int x.person *per){  //类外定义，传入对象，访问private成员
+int func2(int x,person *per){  //类外定义，传入对象，访问private成员
     per->age = x;
     per->print_test();
     person *p =new person(); //new一个对象也可以访问
@@ -4315,11 +4349,10 @@ public:
 
 ## 20.2、友元类
 
-* 在A类中声明B类为友元类，B类中的所有**A类对象**都具有无视权限限定的一个功能。
-	* B类对象无法访问A类数据
-* 都是赋予**对象**具有打破封装的权力。
+* 类A声明类B为友元类，意味着**B类的成员函数**（不是B类的对象或B类的静态成员变量）可以访问A类的私有或保护成员。
+  * 这种关系并不给予A类中的B类对象（或A类的任何其他对象）任何特殊权限来访问B类的私有或保护成员。
+* A类的对象仍然无法直接访问B类的私有或保护数据，除非B类也声明A类为其友元类，或者这些数据通过B类的公有或保护接口暴露出来。
 * 友元类中，类的组合形式也无视权限。
-* 友元类不能被继承
 * 友元关系不具有继承性和传递性。
 
 ```c++
@@ -4327,7 +4360,7 @@ public:
 class person{
 public:
     person(int age,string name):m_age(age),m_name(name){}
-	friend class student;  //声明友元类
+	friend class student;  //声明student友元类
 private:
 	int m_age;
 	string m_name;
@@ -4378,7 +4411,7 @@ public:
 
 **互为友元类：**
 
-* 这里需要注意的就是编译顺序
+* 这里需要注意的就是**编译顺序**
 * 创建类对象去调用类的成员函数，必须在类的定义之后
 
 ```c++
@@ -4412,7 +4445,7 @@ void person::print(){  //通过person类调用student类的print()函数，这�
 
 因为编译器必须能够读取这个结构的声明以理解这个数据类型的大小、行为等方面的所有规则。
 
-有一条规则在任何关系都很重要，那就是谁可以访问我的私有部分。
+有一条规则在任何关系都很重要，那就是**谁可以访问我的私有部分。**
 
 
 
@@ -4488,6 +4521,8 @@ int main(){
 
 * 右值引用的目的是过移动语义来避免无谓拷贝问题，通过**move语义可以将临时生成的左值中的资源无代价的转移到另一个对象中去**，通过**完美转发**来解决不能按照参数实际类型来转发的问题。这样可以避免内存空间的释放和分配，能够延长变量值的声明周期
 
+* 当一个右值（如字面常量、表达式返回值、函数返回值等）被右值引用时，**该右值引用的变量可以接管临时对象（右值）的资源（如堆内存、系统资源等），而不需要进行深拷贝。**这样，原始的临时对象在其生命周期结束时可以被安全地销毁，而不会影响到已经被右值引用变量接管的资源。这一过程通过浅拷贝实现，避免了深拷贝可能带来的额外空间和时间开销。
+
 	```c++
 	int &&ref = 10;
 	int a = 20;
@@ -4541,30 +4576,86 @@ int main(){
 
 # xxx、STL
 
-STL六大组件：容器、算法、迭代器、仿函数、适配器、空间配置器
+STL标准库六大组件：容器(container)、算法(algorithm)、迭代器(iterator)、仿函数(functors)、适配器(adapter)、空间配置器(allocator)
 
-原生指针也是迭代器
+* **`容器(container)`：** **数据结构**，主要用来存放数据
 
-```c++
-int arr[5] = {1,3,4,4,7};
-int *p = arr;
-for(int i = 0;i<5;i++){cout << *(p++) << endl;} //可以
-```
+* **`算法(algorithm)`**：常用的算法：sort、search从实现的角度看STL算法是一种函数模板
 
-广义上看，STL主要分为3类：**algorithm（算法）、container（容器）、iterator（迭代器）**，
+* **`迭代器(iterator)`**：**泛型指针，容器和算法之间的粘合剂**，有五种类型及其衍生变化，从实现的角度看，迭代器是一种将operator*、operator->，operator++、operator--等指针相关操作予以重载的class template
+
+	* 所有容器都有自己的迭代器
+
+	* **原生指针**也是一种迭代器
+
+		```c++
+		int arr[5] = {1,3,4,4,7};
+		int *p = arr;
+		for(int i = 0;i<5;i++){cout << *(p++) << endl;} //可以进行++操作
+		```
+
+* **`仿函数(functors)`**：行为类似函数，**可作为算法的某种策略**，从实现的角度看，仿函数是一种重载了operator()的class/class template，一般函数指针可以视为狭义的仿函数。
+
+	* 一般的函数可以实现变量的相加相减。**仿函数可以用来实现自己定义的类对象的相加相减，**类的属性可能是一个人，一个房子等等
+
+* **`适配器(adapter)`**：一种修饰**容器、仿函数、或迭代器**接口的东西。
+
+	* 例如：stl提供的queue和stack，虽然看似容器，其实只能算作一种容器适配器，因为他们底部完全借助deque，所有的操作都由底层deque供应。
+
+* **`配置器(allocator)`**：**负责对容器的空间配置与管**理，从实现的角度看，配置器是一个实现了动态空间配置、空间管理、空间释放的class template。
+
+![image-20240902100351092](全栈_C++.assets/image-20240902100351092.png)
+
+**交互关系总结**:
+
+* **容器与配置器**：容器通过配置器获取数据的存储空间。
+* **算法与迭代器**：算法通过迭代器存取容器中的内容。
+* **仿函数与算法**：仿函数可以协助算法完成不同的策略变化。
+* **适配器与其他组件**：适配器通过封装或扩展其他组件的功能，来提供新的接口或行为。
 
 
 
-## **1、迭代器**
+![image-20240902100841836](全栈_C++.assets/image-20240902100841836.png)
 
-* 迭代器是一种抽象的概念，通过迭代器可以在不了解容器内部原理的情况下遍历容器
-* 是作为容器与STL算法的粘合剂
+* 容器在定义时都会默认使用一个空间配置器（alloctor），空间配置器用来分配内存一般不进行显示的声明。
+
+* bind2d是仿函数适配器，用来绑定第二个参数
+
+	
+
+
+
+## **1 iterator **与 traits
+
+### 1.1 iterator 概念
+
+**iterator设计思路**
+
+* 迭代器是一种**行为类似指针的对象**，而指针的行为中最常见也最重要的便是内容提领（derference）和成员访问（member access）
+* 因此，迭代器最重要的编程工作就是根据不同的容器操完成对**对operator*（解引用操作符）和operator->（成员访问操作符）、++、==进行重载**，形成针对每个容器的特定操作接口。
+* 是作为容器与STL算法的粘合剂，每一种STL都有专属的迭代器
 * 提供一个遍历容器内部的接口，因此迭代器内部必须保存一个与容器相关联的指针，然后重载各种运算符来遍历（和智能指针类似）
 * 常用的迭代器：value type、difference type、pointer、reference、iterator catagoly；
 
+iterator响应型别：
+
+* 
+
+### 1.2 traits编程技法
 
 
-### 1、++it和it++哪个好
+
+
+
+
+
+
+
+
+
+
+
+### 1.1 ++it和it++哪个好
 
 * ++it返回一个引用，it++返回一个对象
 
@@ -4596,7 +4687,7 @@ int operator++(){
 
 
 
-### 2、return *this:
+### 1.2 return *this:
 
 返回一个指向当前对象的引用能够实现链式操作，是因为通**过引用可以连续调用同一个对象的不同方法，而不需要每次都显式地写出对象的名字。**
 
@@ -4640,6 +4731,28 @@ STL中的hashtable（哈希表）使用的是**拉链法**解决hash冲突。
 
 ## 3、空间配置器
 
+这里说明的配置器都是SGI STL提供的配置器，配置的对象是**内存**
+
+* SGI STL配置器与标准规范不同，其名称为alloc而并非allocator，且不接受任何参数。
+
+* 采用SGI配置器写法：
+
+	```c++
+	vector<int,std::alloc> v;				 // in GCC
+	vector<int, std::allocator<int> > iv;    // 标准说法 in VC or CB
+	```
+
+* SGI STL的每一个容器都已经指定缺省的空间器为alloc
+
+* SGI STL也有标准的空间配置器allocator但是不经常使用，也不建议使用
+
+	* allocator只是基层内存配置/释放行为（operator::new/operator::delete）的一层包装，并没有考虑到效率上的增强
+
+
+
+
+**空间配置器：**
+
 * 空间配置器就是**给容器分配空间的**。像我们平时使用new和delete动态分配释放对象内存一样。空间配置器也封装了这些功能。但是STL的空间配置器不仅仅只简单调用分配空间，它在一些地方都做了优化来提升性能。
 
 * 我们在调用new动态分配对象内存时:
@@ -4650,9 +4763,22 @@ STL中的hashtable（哈希表）使用的是**拉链法**解决hash冲突。
 	* **内存配置和释放操作**由成员函数**alloc:allocate()和alloc:deallocate()**负责。
 	* **对象的构造和析构**由::**construct()96和::destory()**负责。
 
+```c++
+template<typename_Tp,typename_Alloc = std::allocator<_Tp> >
+	class vector:protected_Vector_base<_Tp,_Alloc>{};
+template<class T,class allocator _RWSTD_COMPLEX_DEFAULT(allocator<T>) >
+    class vector
+template<class T,class Allocator<T> >
+    class vector
+```
+
+![image-20240902205448318](全栈_C++.assets/image-20240902205448318.png)
 
 
-### 3.1、两级空间配置器
+
+
+
+### 3.1 两级空间配置器
 
 **目的：**
 
@@ -4660,10 +4786,13 @@ STL中的hashtable（哈希表）使用的是**拉链法**解决hash冲突。
 
 **原理：**二级空间配置器
 
-* 当开辟内存<=128bytes时，即视为开辟小块内存，调用二级空间配置器
-* 当开辟内存>128bytes时，即视为开辟大块内存，调用一级空间配置器
+* 当开辟内存<=128bytes时，即视为开辟**小块内存，调用二级空间配置器**
+* 当开辟内存>128bytes时，即视为开辟**大块内存，调用一级空间配置器**
 	* **一级空间配置器allocator采用malloc和free来 管理内存，和C++标准库中提供的allocator是一样的**
 	* **但其二级空间配置器allocator采用了基于freelist 自由链表原理的内存池机制实现内存管理。（16个自由链表+内存池）**
+		* **内存池**：预先申请一块较大的内存资源作为备用，当需要内存时，直接从这块空间资源中获取。当空间不够时，再使用`malloc`申请补充。
+		* **哈希桶**：用于管理小块内存，每个哈希桶对应一个特定大小的内存块。当用户需要申请或释放小块内存时，通过哈希函数找到对应的哈希桶进行操作。
+		* **内存对齐**：为了提高内存访问的效率，SGI-STL**将用户申请的内存块向上对齐到8字节的整数倍**（在64位平台上）。
 
 
 
@@ -4700,19 +4829,102 @@ static void* allocate(size_t n)
 }
 ```
 
+GC2.9 alloc的行为模式：**16个freelist**如下:(0~15)
+
+* 从#0开始维护8个byte，#1维护16个byte，#2维护24个byte......每一个都比前一个多8个字节
+* 当容器需要内存时，内存分配器负责分配大小，那么容器的内存大小就会被内存对齐被重新分配大小，比如50就会被分配为56（8的倍数），此时分配器就会查找那个链表可以对56进行负责。如果能负责的那个链表并没有管理其他内存块，类似下图也就是说下面没有挂其他链表，是空的。那么空间配置器allocators便会**使用malloc**向内存申请内存块，申请完毕后将内存切块串成**单链表**挂在节点下面。
+
+![image-20240902210206324](全栈_C++.assets/image-20240902210206324.png)
+
+
+
+
+
+### 3.2 配置器使用
+
+```c++
+//std内涵alloctor
+//使用std::alloctor以外的allocator，需要自行#include
+#include <ext\array_allocator.h>
+#include <ext\mt_allocator.h>
+#include <ext\mollc_allocator.h>
+#include <ext\new_allocator.h>
+#include <ext\debug_allocator.h>
+#include <ext\_pool_alloc.h>
+#icnldue <ext\bitmap_allocator.h>
+```
+
+![image-20240902152444096](全栈_C++.assets/image-20240902152444096.png)
+
+
+
 
 
 ## **4、容器**
+
+* 在C++标准模板库（STL）中，容器的迭代器范围通常是遵循**“前闭后开”**区间（即半开区间）的约定。这意味着迭代器范围 `[begin, end)` 涵盖了从 `begin` 指向的元素开始，一直到 `end` 指向的元素之前（但不包括 `end` 指向的元素本身）的所有元素。
+
+	```c++
+	Container<T>::iterator it = c.begin();   //利用迭代器遍历容器
+	for(;it != c.end();++it){}
+	```
+
+**对容器的访问访问：**
+
+```c++
+for(decl : coll ){ it }
+for(int i : {1,2,3,4,5,6} ){std::cout << i << endl;}
+std::vector<double> vec;
+for(auto elem : vec){
+	std::cout << elem << endl;
+}
+for(auto &elem : vec){
+	elem *= 3;
+}
+```
+
+
+
+**常用容器**：
+
+* 序列式容器：array、vector、dequeue、list、foward-list
+	* 按照存放顺序
+* 关联式容器：set/multiset
+	* multi相比普通的容器，元素能重复
+* 无序容器：unordered set/Multiset、unordered map/Multimap。
+
+![image-20240902105342362](全栈_C++.assets/image-20240902105342362.png)
+
+![image-20240903093527498](全栈_C++.assets/image-20240903093527498.png)
+
+容器的底层实现如下：
 
 ![image-20240403230247714](全栈_C++.assets/image-20240403230247714.png)
 
 
 
-### 1、vector
+​     
 
-vector是动态空间。
+### 4.1 序列式容器
 
-**遍历：**
+
+
+#### 4.1.1 vector 容器
+
+##### 4.1.1.1 基本概念
+
+* vector可以理解为单端数组，v.push_back和v.pop_back只会在尾端进行操作。
+
+* vector除了v.begin()和v.end()，还有v.rend()(指向最后一个元素)和v.rbegin()（指向前一个元素的上一个元素），因此可以实现逆序遍历。
+
+* **vector维护一个线性空间**，所以无论元素的类别如何，普通指针都可以作为vector的迭代器，因为vector所具有的操作行为，如operator*（+、-、+=、-=、++、--），可以任意挑选元素进行操作,普通指针天生具有这样的功能，因此**vector支持随机存取，提供的是随机访问迭代器。**
+* vector 以两个迭代器start、finish分别指向配置得来的连续空间中已经被使用的范围，并以迭代器end_of_storage指向整块连续空间（含备用空间）的尾端。
+
+* 容量：为了降低空间配置的速度成本，vector实际配置的大小可能比客户端需求量更大一些，以备将来可能的扩充，这便是容量的概念。
+
+![image-20240903202429206](全栈_C++.assets/image-20240903202429206.png)
+
+##### **4.1.1.2 API:**
 
 ```c++
 #include<vector>
@@ -4783,23 +4995,24 @@ for(vector<vector<int>>::iterator it = v.begin();it!= v.end();it++){
 }
 ```
 
-vector可以理解为单端数组，v.push_back和v.pop_back只会在尾端进行操作。
-
-vector除了v.begin()和v.end(),还有v.rend()(指向最后一个元素)和v.rbegin()（指向前一个元素的上一个元素），因此可以实现逆序遍历。
-
-**vector维护一个线性空间**，所以无论元素的类别如何，普通指针都可以作为vector的迭代器，因为vector所具有的操作行为，如operator*（+、-、+=、-=、++、--），可以任意挑选元素进行操作,普通指针天生具有这样的功能，因此**vector支持随机存取，提供的是随机访问迭代器。**
-
 
 
 **vector构造函数:**
 
 ```c++
-vector<int> v; //采用模板类实现，默认构造函数
-vector(v.begin(),v.end()); //将v[begin(),end())区间的元素拷贝给本身
+template<class T,class Alloc = alloc>
+class vector{
+public:
+    iterator start;				//	表示目前使用空间的头
+    iterator finish;			//	表示目前使用空间的尾
+    iterator end_of_storage;	//	表示目前可用空间的头
+    ...
+}
+vector<int> v; 					//采用模板类实现，默认构造函数
+vector(v.begin(),v.end()); 		//将v[begin(),end())区间的元素拷贝给本身
 vector<int> v2(v.begin(),v.end());  //本质上是有参构造，只不过两个参数是迭代器
-vector(n,elem); //构造函数将n个elem拷贝给自身
-vector(const vector &vec); //拷贝构造函数
-
+vector(n,elem); 				//构造函数将n个elem拷贝给自身
+vector(const vector &vec); 		//拷贝构造函数
 
 //assgin
 v.assgin(v1.begin(),v1.end());
@@ -4808,15 +5021,29 @@ v.swap(v2);
 
 
 
-动态开辟的二维数组。元素在内存连续存放。随机存取任何元素都能在常数时间完成。在尾端增删元素具有较佳的性能。
+##### 4.1.1.3 vector迭代器
 
-vector底层为**单端数组/动态数组**，v.push_back和v.pop_back只会在尾端进行操作。
+* vector缺省alloc作为空间配置器，并以此另外定义了一个data_allocator,为的是更方便以元素大小为配置单位
+* `data_allocator::allocate(n)`：表示配置n个空间
 
-![image-20240401224537507](全栈_C++.assets/image-20240401224537507.png)
+```c++
+template<class T,class Alloc = alloc>
+class vector{
+	prtected:
+	typedef simple_alloc<value_type,Alloc> data_allocator;
+    .....
+}
+```
 
 
 
-#### **1.1 、逆序遍历（非质变算法）：**
+
+
+
+
+##### 4.1.1.4 vector相关算法
+
+**逆序遍历（非质变算法）：**
 
 * vector除了v.begin()（指向第一个元素）和v.end()（指向最后一个元素的下一个位置）
 * 还有v.rend()(指向最后一个元素)和v.rbegin()（指向前一个元素的上一个元素），因此可以实现逆序遍历。
@@ -4829,7 +5056,7 @@ for(vector<int>::reverse_iterator it = v.rbegin();it! = v.rend();it++){
 
 
 
-#### **1.2 、vector随机存取：**
+**vector随机存取：**
 
 ​		**vector维护一个线性空间**，所以无论元素的类别如何，普通指针都可以作为vector的迭代器，因为vector所具有的操作行为，如operator*（+、-、+=、-=、++、--），可以任意挑选元素进行操作,普通指针天生具有这样的功能，因此**vector支持随机存取，提供的是随机访问迭代器。**支持**跳跃式访问**。
 
@@ -4843,7 +5070,7 @@ cout << *it << endl;  //只要不报错，这个迭代器就支持跳跃式访�
 
 
 
-#### **1.3、vector扩容规则：**
+**vector扩容规则：**
 
 * **显示扩容：**
 	* resize() 重置大小
@@ -4905,7 +5132,7 @@ template<class T> void swap(T &a,T &b)
 
 
 
-#### 1.4、vector空间收缩
+**vector空间收缩：**
 
 erase、clear()都只能删除和清空元素，但是vector的内存占用还在，所有的内存空间只有在vector析构的时候才会被系统回收。
 
@@ -4928,7 +5155,7 @@ vector().swap(v);
 
 
 
-#### **1.5、v.push_back()**
+**v.push_back()**：
 
 * v.push_back向尾部插入元素 
 	* 当空间够用时，首先会创建这个元素，然后再将这个元素拷贝或者移动到容器中
@@ -4950,7 +5177,7 @@ for(int i= 0；i<10000;i++)
 
 
 
-#### 1.6、手撕vector
+**手撕vector**
 
 ```c++
 #include<iostream>
@@ -4985,6 +5212,247 @@ public:
 
 
 
+#### 4.1.2 list容器
+
+##### 4.1.2.1  概念
+
+* 序列式容器，底层为**环形双向链表**，`std::list`提供了双向迭代器，允许向前和向后遍历链表。对任何元素的插入和删除移除永远都是常数时间。
+	* 如果需要在链表的特定位置找到节点（例如，通过值查找），则可能需要遍历链表，这可能需要线性时间。
+
+* 维护非连续空间，每次插入/删除一个元素，就配置/释放一个元素空间，**list的插入和删除操作都不会造成原有的迭代器失效**
+* 尾部节点也是指向最后一个节点的下一位（空白节点），因此是前闭后开的区间结构
+	* list是环形链表，但是为了遵循STL规范，在最后一个环形链表的尾端加上一个空白节点，便符合STL规范“前闭后开”。
+* list空间管理采用**alloc空间配置器**，为了方便以节点大小为配置单位，还定义了一个**list_node_alloctor函数**可以一次性配置多个节点。
+	* `list_node_allocator`封装了对内存分配和释放的细节，使得 `std::list` 可以更方便地以节点为单位进行内存管理。通过使用 `list_node_allocator`，`std::list` 可以一次性分配多个节点空间，从而提高内存分配的效率，并减少内存碎片。
+	* **allocate**：用于分配新的节点空间。这个函数会向操作系统请求一定大小的内存块，并返回一个指向该内存块的指针。
+	* **deallocate**：用于释放之前分配的节点空间。这个函数会将给定的内存块归还给操作系统。
+	* **construct** 和 **destroy**：这两个函数通常不是 `list_node_allocator` 的一部分，但它们与内存管理紧密相关。`construct` 用于在已分配的内存块上构造对象，而 `destroy` 用于销毁对象并释放其资源，但不释放内存块本身。
+* list由于双向性，支持在头部front和尾部back两个方向进行push和pop操作.
+
+![image-20240426105057950](全栈_C++.assets/image-20240426105057950.png)
+
+![image-20240903095932186](全栈_C++.assets/image-20240903095932186.png)
+
+```c++
+// GC 2.9
+template<class T,class Alloc = alloc>
+class list {
+protected:
+	typedef _list_node<T> list_node
+    typedef simple_alloc<list_node,Alloc> list_node_allocator; 	// list_node_alloctor
+public:
+    typedef list_node* link_type;   // 有一个指针list_node，因此sizeof（list）的大小是4
+    typedef _list_iterator<T,T&,T*> iterator;
+protected:
+    link_type node;  				// 只需要一个指针，便可以表示整个环形双向链表
+    ....
+};
+//list 节点结构
+template <class T>
+struct _list_node {
+    typdedef void* void_pointer;
+    void_pointer prev;
+    void_pointer next;
+    T data;
+};
+//list 迭代器
+template<class T>
+struct _list_iterator{
+	typedef T value_type;
+    typedef Ptr pointer;
+    typedef Ref reference;
+    
+    link_type node;  				//迭代器内部需要普通指针指向list节点
+    ...
+};
+```
+
+观察上述代码能看到：
+
+* list本身和list节点的构造是不同的结构，需要分开设计
+
+
+
+
+
+
+
+##### 4.1.2.2 list迭代器
+
+* list是链表结构，不保证节点是连续存储，因此不能使用普通指针作为迭代器
+* list是双向链表，需要迭代器有迁移、后移的能力，所以list提供的是`bidirectional iterators`
+	* `Bidirectional iterators` 是 C++ 标准库迭代器类别中的一种，它们支持向前和向后遍历容器中的元素。与只能向前移动的迭代器（如输入迭代器）不同，双向迭代器提供了两个主要的操作：`++` 用于向前移动迭代器，`--` 用于向后移动迭代器。`*`和`->`用于提取。
+
+![image-20240903100256238](全栈_C++.assets/image-20240903100256238.png)
+
+
+
+```c++
+#include <iostream>  
+#include <list>  
+  
+int main() {  
+    std::list<int> myList = {1, 2, 3, 4, 5};  
+  
+    // 使用双向迭代器遍历 list  
+    auto it = myList.begin(); // 获取双向迭代器  
+    while (it != myList.end()) {  
+        std::cout << *it << " "; // 访问当前元素  
+        ++it; // 向前移动迭代器  
+  
+        if (*it == 4) {  
+            --it; // 当发现元素 4 时，向后回退迭代器  
+            break; // 假设我们在这里停止遍历  
+        }  
+    }  
+  
+    // 注意：上面的循环实际上在发现 4 时会回退迭代器，但随后会再次向前移动（因为循环条件），  
+    // 所以最终 it 会指向 5。为了正确展示回退，我们可以稍微修改循环或添加一些打印语句。  
+  
+    // 正确展示回退后的迭代器位置  
+    if (it != myList.end()) {  
+        std::cout << "\n回退后迭代器指向的元素是: " << *it; // 应该输出 4  
+    }  
+  
+    return 0;  
+}  
+  
+// 注意：上面的代码示例在逻辑上有一个小问题，即循环会在发现 4 后立即退出，但我们的意图是展示回退。  
+// 为了更清晰地展示回退，你可能想要调整循环条件或使用其他逻辑。
+```
+
+
+
+##### 4.1.2.3  API
+
+![image-20240426105207857](全栈_C++.assets/image-20240426105207857.png)
+
+![image-20240426105228927](全栈_C++.assets/image-20240426105228927.png)
+
+![image-20240426110415627](全栈_C++.assets/image-20240426110415627.png)
+
+
+
+```c++
+#include<list>
+//初始化
+list<int> l;
+list<int> l2(10,10); //有参构造
+list<int> l3(l2);
+list<int> l4(l3.begin(),l3.end());
+
+for(list<int>::iterator it = l.begin(),it!=l.end();it++){
+	cout << *it << endl; //*it是int类型
+}
+
+//插入删除
+l.push_back(10); //尾插
+l.push_front(200); //头插
+l.insert(l.begin(),300); //头插
+l.insert(l.end(),300); //尾插
+l.insert(l.end(),300); //尾插
+list<int>::iterator it = l.begin();
+it++;
+it++;
+l.insert(it,500);
+l.pop_back();//尾删
+l.pop_front(); //头删
+l.earse(l.begin(),l.end());
+l.remove(10); //删除所有匹配元素
+l.unique(10);	//当出现连续且相同的元素，移除一个
+
+//大小操作
+l.size();
+l.empty();
+l.resize();
+
+//赋值操作
+l.assgin(10,10);
+l2 = l1;
+l2.swap(l); //交换
+l.front(); //头元素
+l.back(); //尾元素
+
+//反转
+l.reverse(); //倒序
+l.sort(); //正序
+bool nosort(int a,int b){
+    return a>b;
+}
+l.sort(nosort); //倒序
+```
+
+此外除了基础的操作之外：list还提供了一个迁移操作：
+
+* 迁移：将某连续范围内的元素迁移到某个特定位置之前
+* transfer并非公开接口，list公开的是接合操作`splice`
+
+```c++
+int iv[5] = {5,6,7,8,9};
+list<int> lis(iv,iv+5);
+
+//假设 lis2的内容为0 2 99 3 4
+it = find(lis2.begin(),lis2.end(),99);
+lis2.splice(it,lis);			// 0 2 56789 99 3 4
+lis2.sort();					// 0 2 3 4 5 6 7 8 9 99
+```
+
+
+
+##### 4.1.2.4 slist
+
+**概念：**
+
+list是双向链表、slit是单向链表，两者的主要区别是：list的迭代器是双向的，后者的迭代器是单向的，slist不如list灵活但是其所耗空间小，操作快。
+
+**API**：
+
+slit提供了inset_after()、erase_after()、push_front()
+
+```c++
+template<typename T>
+class slist{
+	static listnode* create_node(const value_type& x); //配置空间构造元素
+	static void destroy_node(list_node* node){} //析构函数、释放空间
+private:
+	list_node_base node;
+public:
+	iterator begin(){}
+	iterator end(){}
+	size_type size(){}
+	bool empty(){}
+	void swap(slist &L){} //交换两个slist，只交换两个头节点
+	reference front(){} //取头部元素
+	void push_front(const value &x){} //头部插入元素
+	void pop_front(){} //从头部取走元素
+};
+
+#include<forward_list>
+forward_list<int> f;
+f.push_front(10);
+f.push_front(20);
+f.push_front(30);
+f.push_front(40);
+forward_list<int>::iterator it1 = f.begin();
+forward_list<int>::iterator it2 = f.end();
+for(;it1!=it2;++it){
+	cout <<*it1 << endl;  //40 30 20 10
+}
+it1 = find(f.begin(),f.end(),20); //寻找20的位置  
+if(it1! = it2){
+	it.insert_after(it1,99); //插入99
+}
+for(auto it:f){
+    cout << it << " "; //40 30 20 99 10
+}
+it1 = find(f.begin(),f.end(),20); //寻找20的位置  
+if(it1! = it2){
+	it.erase_after(it1); //删除99，20的下一个元素
+}
+for(auto it:f){
+    cout << it << " "; //40 30 20 10
+}
+```
 
 
 
@@ -4993,16 +5461,17 @@ public:
 
 
 
-### 2、string容器
 
-#### 2.1、string与char*之间的关系
+#### 4.1.3 string容器
+
+##### 4.1.3.1、string与char*之间的关系
 
 * string继承自basic_string，是对char*进行了封装，封装的string包含了char数组，容量，长度等属性
 	* char*是一个指针，string是一个类
 * string可以进行**动态扩展**，在每次扩展的时候另外申请一块原空间大小**两倍**的空间，然后将原字符串拷贝过去，并加上新增加的内容（等比**vector扩容**）。
 * string不用考虑释放和越界，string管理char*所分配的内存，每一次string的复制，取值都由string类负责维护。
 
-#### 2.2、**API：**
+##### 4.1.3.2 API：
 
 ![image-20240409213606502](全栈_C++.assets/image-20240409213606502.png)
 
@@ -5070,27 +5539,58 @@ while(true){
 
 
 
-### 3、deque容器
+#### 4.1.4 deque容器
 
-#### 3.1、概念
+##### 4.1.4.1 概念
 
 底层为**双端数组**，可以在两端进行插入和删除。
 
-* deque和vector一样也**支持随机存取**，vector是单向开口的连续性空间，而deque是**双向开口（可以在两端进行插入和删除）的连续性空间**
+* deque和vector一样也**支持随机存取**，vector是单向开口的连续性空间，而deque是**双向开口（可以在两端进行插入和删除）的连续性空间**，也就是说可以在头尾两端分别做元素的插入和删除操作，但其头部操作效率奇差。
 * deque允许**常数时间内对头端进行元素插入和删除操作**
 * deque**没有容量的概念，其是动态的以分段的连续空间组合而成，随时可以增加一段新的空间并链接起来**，deque的最大任务就是如何维护这个整体的连续性，像vector那样“因为空间不足而重新分配，并就行复制和释放原空间”的操作并不会出现在deque身上，因此deque**没有提供所谓的空间保留功能**
-* 中控器负责保存每一段内存的地址
 * deque提供随机访问的迭代器，但是其迭代器并不是普通的指针，其复杂程度比vector高级，因此对deque进行排序，可以先将元素复制给vector，利用sort排序后，再复制回deque。
 
 ![image-20240426100307538](全栈_C++.assets/image-20240426100307538.png)
 
+##### 4.1.4.2 deque中控器
 
+* deque逻辑上看是连续空间，其实由一段一段的定量连续空间组成，一旦有必要在deque的前端或尾端增加新空间，便配置一定量的连续空间，串接在整个deque的头端和尾端。
+* 要分段有要连续就必须要有中控器，deque采用一块连续空间map，其中每个元素（节点）都是指针，指向另一段连续线性空间（缓冲区），缓冲区才是deque的存储空间主体，SGI STL允许指定缓冲区大小，默认0表示将使用512bytes缓冲区。
 
 ![image-20240426100342596](全栈_C++.assets/image-20240426100342596.png)
 
+```c++
+template<class T,class Alloc = alloc,size_t Bufsiz = 0>
+class deque{
+public:
+	typedef T value_type;
+	typedef value_type* pointer;
+	...
+	
+protected:
+	typedef pointer *map_pointer;
+protected:
+	map_pointer map;  	// 指向map，map是块连续空间，期内的每个元素都是一个指针（节点）。指向一块缓冲区
+    size_type map_size; // map可容纳多少指针
+    ...
+}
+```
+
+* 观察代码可以看到：map其实是一个T**，也就是说其是一个二级指针，管理一系列一级指针，而当map使用率满载，便需要再找一块更大的空间来作为map（reallocate_map）
 
 
-#### 3.2、API
+
+##### 4.1.4.3 deque迭代器
+
+* deque是分段连续空间，维护空间连续性的任务主要由迭代器的 `operator++` 、`operator--`两个运算子上
+
+* deque迭代器主要功能在于：
+	* 能够指出分段连续空间（缓冲区）在哪里
+	* 其次必须能够判断自己是否已经处于在缓冲区的边缘，如果是，一旦前进或者后退就必须跳跃至另一个上一个或者下一个缓冲区，为了能够正确跳跃，deque必须随时掌握map
+
+
+
+##### 4.1.4.4 API
 
 * 双端插入和删除元素效率较高.
 * 指定位置插入也会导致数据元素移动,降低效率,
@@ -5152,7 +5652,7 @@ d.earse(6); //删除6号位的元素
 
 
 
-### 4、stack容器
+#### 4.1.5 stack容器
 
 * 是一种先入后出的数据结构，
 * 只有一个出口，只允许在栈顶新增元素，移除元素
@@ -5181,7 +5681,7 @@ cout << s.top() <<endl;
 
 
 
-### 5、queue 容器
+#### 4.1.6 queue 容器
 
 * 底层为**双端队列**，先进先出
 * 队列能在两端插入和删除，但是插入和删除时单向的，**在一端插入，必须在另一端删除**
@@ -5200,139 +5700,31 @@ cout << q.back() << endl; //队尾元素
 
 
 
-### 6、list容器
-
-#### 6.1、概念
-
-* 底层为环形双向链表，使用一个指针便可以遍历整个链表
-
-* list的插入和删除操作都不会造成原有的迭代器失效
-* 尾部节点也是指向最后一个节点的下一位（空白节点），因此是前闭后开的区间结构
-* list空间管理采用alloc空间配置器，为了方便以节点大小为配置单位，还定义了一个list_node_alloctor函数可以一次性配置多个节点。
-* list由于双向性，支持在头部front和尾部back两个方向进行push和pop操作
-
-![image-20240426105057950](全栈_C++.assets/image-20240426105057950.png)
-
-#### 6.2 、API
-
-![image-20240426105207857](全栈_C++.assets/image-20240426105207857.png)
-
-![image-20240426105228927](全栈_C++.assets/image-20240426105228927.png)
-
-![image-20240426110415627](全栈_C++.assets/image-20240426110415627.png)
+4.1.8 priority_queue
 
 
 
-```c++
-#include<list>
-//初始化
-list<int> l;
-list<int> l2(10,10); //有参构造
-list<int> l3(l2);
-list<int> l4(l3.begin(),l3.end());
 
-for(list<int>::iterator it = l.begin(),it!=l.end();it++){
-	cout << *it << endl; //*it是int类型
-}
 
-//插入删除
-l.push_back(10); //尾插
-l.push_front(200); //头插
-l.insert(l.begin(),300); //头插
-l.insert(l.end(),300); //尾插
-l.insert(l.end(),300); //尾插
-list<int>::iterator it = l.begin();
-it++;
-it++;
-l.insert(it,500);
-l.pop_back();//尾删
-l.pop_front(); //头删
-l.earse(l.begin(),l.end());
-l.remove(10); //删除所有匹配元素
-
-//大小操作
-l.size();
-l.empty();
-l.resize();
-
-//赋值操作
-l.assgin(10,10);
-l2 = l1;
-l2.swap(l); //交换
-l.front(); //头元素
-l.back(); //尾元素
-
-//反转
-l.reverse(); //倒叙
-l.sort(); //正序
-bool nosort(int a,int b){
-    return a>b;
-}
-l.sort(nosort); //倒序
-```
+#### 4.1.7 heap
 
 
 
-#### 6.3、slist
-
-**概念：**
-
-list是双向链表、slit是单向链表，两者的主要区别是：list的迭代器是双向的，后者的迭代器是单向的，slist不如list灵活但是其所耗空间小，操作快。
-
-**API**：
-
-slit提供了inset_after()、erase_after()、push_front()
-
-```c++
-template<typename T>
-class slist{
-	static listnode* create_node(const value_type& x); //配置空间构造元素
-	static void destroy_node(list_node* node){} //析构函数、释放空间
-private:
-	list_node_base node;
-public:
-	iterator begin(){}
-	iterator end(){}
-	size_type size(){}
-	bool empty(){}
-	void swap(slist &L){} //交换两个slist，只交换两个头节点
-	reference front(){} //取头部元素
-	void push_front(const value &x){} //头部插入元素
-	void pop_front(){} //从头部取走元素
-};
-
-#include<forward_list>
-forward_list<int> f;
-f.push_front(10);
-f.push_front(20);
-f.push_front(30);
-f.push_front(40);
-forward_list<int>::iterator it1 = f.begin();
-forward_list<int>::iterator it2 = f.end();
-for(;it1!=it2;++it){
-	cout <<*it1 << endl;  //40 30 20 10
-}
-it1 = find(f.begin(),f.end(),20); //寻找20的位置  
-if(it1! = it2){
-	it.insert_after(it1,99); //插入99
-}
-for(auto it:f){
-    cout << it << " "; //40 30 20 99 10
-}
-it1 = find(f.begin(),f.end(),20); //寻找20的位置  
-if(it1! = it2){
-	it.erase_after(it1); //删除99，20的下一个元素
-}
-for(auto it:f){
-    cout << it << " "; //40 30 20 10
-}
-```
 
 
 
-### 7、set容器
 
-#### 7.1、set/multiset容器特性
+### 4.2 关联式容器
+
+#### 4.2.1 树
+
+
+
+
+
+#### 4.2.2 set容器
+
+##### 4.2.2.1 set/multiset容器特性
 
 set/multiset的**底层实现都是红黑树**，红黑树是平衡二叉树的一种
 
@@ -5348,8 +5740,8 @@ set/multiset的**底层实现都是红黑树**，红黑树是平衡二叉树的�
   	* typedef pair<iterator,bool> _Pairib; //插入的底层，其实返回的也是队组，不过一个是迭代器，一个bool类型
   		* 当插入成功返回迭代器iterator，bool = True;
   		* 插入失败不会返回迭代器，bool = false;
-  		* 所以插入的操作不会提前判断set中有没有相同元素，只有插进去了，会返回对组，其中bool = false;
-* set的iterator是一种const_iterator
+  		* 所以插入的操作不会提前判                                                                                                                            断set中有没有相同元素，只有插进去了，会返回对组，其中bool = false;
+* set的iter                                                    ator是一种const_iterator
   * **不能通过迭代器修改set元素的值**，因为set元素值就是其键值，关系到set元素的排序规则
 * 对set容器的插入和删除不会影响之前的迭代器。除了被删除的那个
 
@@ -5381,6 +5773,7 @@ s.find(key); //查找键值key是否存在，返回的是该键的元素的迭�
 		if(pos == s.end())  //没有这个值
 s.lower_bound(keyElem); //返回第一个key>=keyElem的迭代器
 		set<int>::iterator pos2 = s.lower_bound(30);
+		auto pos2 - s.lower_bound(30);
 		if(pos != s.end()){ //没遍历完成一直遍历
             return *pos2;
 s.upper_bound(keyElem); ////返回第一个key>keyElem的迭代器
@@ -5406,7 +5799,7 @@ cout << p.first << p.second << endl;
 
 
 
-#### 7.2、unordered_set
+##### 4.2.2.2 unordered_set/unordered_multiset
 
 底层为**哈希表**。
 
@@ -5425,9 +5818,9 @@ us.count(30); //0/1
 
 
 
-### 8、map容器特性
+#### 4.2.2 map容器特性
 
-#### 8.1、map/multimap/unordered_map容器
+##### 4.2.2.1 map/multimap
 
 **Map特性:**
 
@@ -5487,7 +5880,7 @@ m.equal_range(keyElem); 	// 同时返回容器中key与keyelem相等的上下限
 
 
 
-#### **8.2、Hashmap**
+##### **4.2.2.2 Hashmap**
 
 ![image-20240415202058546](全栈_C++.assets/image-20240415202058546.png)
 
@@ -5516,7 +5909,7 @@ Map<String,int> mp = new Map("zhangsan",18);
 
 
 
-
+5、stratis                                 
 
 ## 5、STL容器汇总
 
