@@ -5029,7 +5029,9 @@ v.swap(v2);
 
 ##### 4.1.1.3 vector 迭代器与控制器
 
-迭代器：
+
+
+**迭代器：**
 
 ```c++
 template<class T,class Alloc = alloc>
@@ -5040,7 +5042,7 @@ class vector{
 }
 ```
 
-控制器：
+**控制器：**
 
 * vector缺省alloc作为空间配置器，并以此另外定义了一个data_allocator,为的是更方便以元素大小为配置单位
 * `data_allocator::allocate(n)`：表示配置n个空间
