@@ -3381,20 +3381,24 @@ Qt中处理json
 
 如图即：鼠标点击并拖动窗口上半部分时才会移动：
 
+实现一个自定义的标题栏（`MyTitleBar`），用于控制一个父窗口（登录窗口）的移动
+
 ![image-20240828171828411](FastDFS.assets/image-20240828171828411.png)
 
 **处理流程：**通过处理鼠标事件来实现
 
 1. 要有两个窗口
-	* 一个父窗口
-	* 一个子窗口，主要操作子窗口
+	* 一个父窗口Login
+	* 一个子窗口，主要操作子窗口MyTitleBar
 2. 定义自己的窗口类MyTitleBar
 	* 需要有一个继承自`QWidget`或`QMainWindow`的类。在这个类中，重写一些鼠标事件处理函数。
 3. 重写鼠标事件处理函数
 	* 需要重写`mousePressEvent`、`mouseMoveEvent`和`mouseReleaseEvent`这三个函数
-	* 在`mousePressEvent`中，检查鼠标按下时是否在窗口的可拖动区域（例如顶部），并记录下当前的位置。在`mouseMoveEvent`中，如果检测到鼠标拖拽动作（即鼠标按钮仍被按下），则更新窗口的位置。在`mouseReleaseEvent`中，清理可能的拖拽状态。
-		* 使用`event->globalPos()`来获取鼠标的全局位置，并使用这个位置来移动窗口。
-
+	* 在`mousePressEvent`中，检查鼠标按下时是否在窗口的可拖动区域（例如顶部），并记录下当前的位置。
+	  * 记录鼠标按下时**鼠标光标相对于父窗口左上角的偏移量(坐标)**。让后续在鼠标移动时能够计算出窗口应该移动到的位置。
+	    * 通过将鼠标的全局位置减去窗口的左上角位置来获得的
+	* 在`mouseMoveEvent`中，如果检测到鼠标拖拽动作（即鼠标按钮仍被按下），则更新窗口的位置。
+	  * 鼠标相对于窗口原始位置的偏移，因此在移动鼠标时，窗口会按照预期的方式跟随鼠标移动。
 3. 鼠标拖动窗口移动, 左上角坐标求解方法:
 	* 在鼠标按下还没有移动的时候求差值
 
@@ -3432,9 +3436,9 @@ public:
     void setMyParent(QWidget* parent);
 
 signals:
-    void showSetWindow();
-    void showMinWindow();
-    void closeMyWindow();
+    void showSetWindow();		// 展示界面
+    void showMinWindow();		// 缩小界面
+    void closeMyWindow();		// 关闭界面
 
 protected:
     // 鼠标移动 -> 让窗口跟随鼠标懂
@@ -3502,7 +3506,7 @@ void MyTitleBar::mouseMoveEvent(QMouseEvent *event)
     // 判断持续状态, 鼠标左键
     if(event->buttons() & Qt::LeftButton)   //鼠标左键被按下
     {
-         m_parent->move(event->globalPos() - m_pt);
+         m_parent->move(event->globalPos() - m_pt);   //鼠标当前位置-位置的差值
     }
 }
 
@@ -3512,7 +3516,7 @@ void MyTitleBar::mousePressEvent(QMouseEvent *event)
     if(event->button() == Qt::LeftButton)
     {
         // 相对位置 = 当前鼠标位置 - 左上角的位置;
-        m_pt = event->globalPos() - m_parent->geometry().topLeft();
+        m_pt = event->globalPos() - m_parent->geometry().topLeft();  //m_parent->pos()
     }
 }
 ```
@@ -3528,9 +3532,29 @@ void MyTitleBar::mousePressEvent(QMouseEvent *event)
 
 
 
+##### 10.1.2 标题栏动作
 
+```c++
+signals:
+    void showSetWindow();		// 展示界面
+    void showMinWindow();		// 缩小界面
+    void closeMyWindow();		// 关闭界面
+    
+connect(ui->setBtn, &QToolButton::clicked, this, [=]()   //发送信号-标题栏
+    {
+        emit showSetWindow();
+    });
+connect(ui->minBtn, &QToolButton::clicked, this, [=]()
+    {
+        emit showMinWindow();
+    });
+connect(ui->closeBtn, &QToolButton::clicked, this, [=]()
+    {
+        emit closeMyWindow();
+    });
 
-
+    
+```
 
 login.h
 
