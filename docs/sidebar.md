@@ -31,4 +31,4 @@
     * [📃网络](study/interview/inter_net/)
     * [📃MySQL](study/interview/inter_sql/)
     * [📃Redis](study/interview/inter_redis/)
-    * [📃C++](study/interview/c++/)           
+    * [📃C++](study/interview/inter_c++/)           
