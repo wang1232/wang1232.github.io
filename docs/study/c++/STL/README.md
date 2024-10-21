@@ -1573,7 +1573,14 @@ KPI:
   
 int main() {  
     // 创建一个 unordered_map 并初始化  
-    std::unordered_map<int, std::string> um = {{1, "one"}, {2, "two"}, {3, "three"}};  
+    std::unordered_map<int, std::string> um;  
+		um.insert({1, "one"});  
+		um.insert({2, "two"});  
+		um.insert({3, "three"});
+    std::unordered_map<int, std::string> um;  
+		um.emplace(1, "one");  
+		um.emplace(2, "two");  
+		um.emplace(3, "three"); 
   
     // 插入新的键值对  
     um[4] = "four";  
