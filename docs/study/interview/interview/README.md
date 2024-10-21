@@ -1,21 +1,20 @@
-**杭州**
+#### **面试1：**
 
-1 UDP广播
+**1 `UDP广播`**
 
 * **定义**：UDP广播是指由**一台主机向该主机所在子网内的所有主机发送数据**的方式。当一台主机发送广播信息时，子网内的所有其他主机都将接收并处理该数据，无论它们是否需要该信息。
 
   * **实现方式**：**广播只能通过UDP或原始IP实现**，不能用TCP。这是因为TCP是面向连接的协议，而UDP是无连接的协议，更适合用于广播通信。
-
-  	* **创建套接字**：使用`socket()`函数创建一个数据报套接字（`SOCK_DGRAM`），以支持UDP通信。
-
-  	* **设置广播权限**：使用`setsockopt()`函数将套接字设置为允许发送广播数据。这通常需要设置`SO_BROADCAST`选项。
-
-  	* **发送数据**：使用`sendto()`函数向广播地址发送数据。广播地址是一个特殊的IP地址，用于表示子网内的所有主机。
-
-  	* **接收数据**：接收者使用类似的套接字创建和绑定过程，然后使用`recvfrom()`函数接收发送到绑定地址和端口的数据。
-
-  * **用途：**
-
+		* **创建套接字**：使用`socket()`函数创建一个数据报套接字（`SOCK_DGRAM`），以支持UDP通信。
+  	
+		* **设置广播权限**：使用`setsockopt()`函数将套接字设置为允许发送广播数据。这通常需要设置`SO_BROADCAST`选项。
+  	
+		* **发送数据**：使用`sendto()`函数向广播地址发送数据。广播地址是一个特殊的IP地址，用于表示子网内的所有主机。
+  	
+		* **接收数据**：接收者使用类似的套接字创建和绑定过程，然后使用`recvfrom()`函数接收发送到绑定地址和端口的数据。
+  	
+	* **用途：**
+  
 	  * **减少分组流通**：在单个服务器与多个客户主机通信时，UDP广播可以显著减少分组流通，提高通信效率。
 	  
 	  * **支持多种协议**：地址解析协议(ARP)、动态主机配置协议(DHCP)和网络时间协议(NTP)等网络协议都使用广播来实现其功能。
@@ -27,7 +26,7 @@
 	  * **缺点**：传输不可靠，负载较大
 	
 
-2 节点通信hub，iqip，map三种方式
+**2 `节点通信hub，iqip，map三种方式`**
 
 * **Hub**(核心是**广播机制**)
 
@@ -71,15 +70,17 @@
 * **总结**
 
 	* Hub 更适合简单的消息广播和路由场景，它通常用在不需要复杂处理的轻量级系统中。
-	* IQIP 主要用于分布式查询系统，帮助优化查询执行，通过节点间的信息传递减少开销。
+	
+	* IQIP 主要用于分布式查询系统，帮助优化查询执行，通过节点间的信息传递减少开
+		销。
+	
 	* Map 是大规模数据并行处理的核心，适用于需要高并发、大数据量处理的场景。
 
-
-3 什么是动态库的二进制兼容性
+**3 `什么是动态库的二进制兼容性`**
 
 * 动态库的二进制兼容性是指在升级动态库文件时，**无需重新编译使用这些库的可执行文件或其他库文件**，且程序的功能不会因此而被破坏。这要求**新版本的动态库在二进制层面上与旧版本保持足够的兼容性**，以便旧的可执行文件能够正确调用新库中的函数和数据。（新的可以调用旧的，旧的可执行文件也可以调用新的）
 
-4 破坏二进制兼容的常见原因（代码改变）
+**4 `破坏二进制兼容的常见原因（代码改变）`**
 
 * **改变函数签名**：包括函数名、参数类型、返回类型等的改变都可能导致二进制不兼容。
 
@@ -89,7 +90,7 @@
 
   * **改变枚举值**：如果枚举类型的值在升级后发生了变化，而应用程序中使用了这些枚举值作为开关或条件判断的依据，那么也可能会导致二进制不兼容。
 
-5 函数结构体如何保证动态库的二进制兼容性
+**5 `函数结构体如何保证动态库的二进制兼容性`**
 
 * **明确并稳定公共接口**
 
@@ -98,10 +99,10 @@
   * **结构体和类**：对于任何在公共接口中使用的结构体或类，其成员变量、类型、顺序和访问级别（特别是公共成员）都应保持不变。成员的增加应该只在结构体或类的末尾进行，并且确保它们是可选的或可以向后兼容的。
 
   * **使用c兼容的接口**
-	* 如果你的动态库旨在被多种语言使用（尤其是C++和C），则应确保所有公共接口都是C兼容的。这通常意味着使用`extern "C"`来避免C++的名称修饰（name mangling），并只使用C兼容的数据类型和调用约定。
+	  	* 如果你的动态库旨在被多种语言使用（尤其是C++和C），则应确保所有公共接口都是C兼容的。这通常意味着使用`extern "C"`来避免C++的名称修饰（name mangling），并只使用C兼容的数据类型和调用约定。
 
   * **避免修改已发布的接口**
-	* 一旦公共接口被发布并被外部程序使用，就应避免对其进行修改。
+	  	* 一旦公共接口被发布并被外部程序使用，就应避免对其进行修改。
 
   * **使用版本号和符号版本控制**
 
@@ -109,21 +110,21 @@
 
 	   * 使用符号版本控制（如Windows上的DLL文件的符号版本信息）来管理库中符号的兼容性。这允许你同时提供库的多个版本，每个版本都有独特的符号表，从而避免了不同版本之间的符号冲突。（相机二次开发中，不同的版本由不同的符号集）
 
-6 保证二进制兼容性可以添加虚函数吗
+**6 `保证二进制兼容性可以添加虚函数吗`**
 
 * **添加虚函数通常不会破坏二进制兼容性**，但前提是这种添加是在遵循一定规则和约束的情况下进行的
 
   * 在C++中，虚函数是通过虚函数表（vtable）来实现的，这是C++运行时环境的一部分，用于在运行时确定应该调用哪个类的成员函数。当你向一个类中添加新的虚函数时，这个类的虚函数表会相应地扩展以包含新添加的虚函数。重要的是，这种扩展通常**不会影响到已经编译并链接到旧版本类的可执行文件**。
 
-7 tcp和udp的区别
+**7 `tcp和udp的区别`**
 
 * tcp是面向连接的字节流的传输协议，具有可靠传输、流量控制、拥塞控制等算法规则，传输数据前需要建立连接进行三次握手、断开链接前需要进行四次挥手
 * udp 是无连接的面向数据报的传输协议，不可靠，但是相对于tcp在局域网范围内实时性高
 
-8 udp的最大包的容量
+**8 `udp的最大包的容量`**
 
 * **UDP协议本身的限制**
-	* UDP协议定义了一个16位的UDP报文长度字段，这意味着UDP报文的最大长度理论上可以达到2^16 = 65536字节。然而，由于UDP报文头部占用了8字节，且在IP层封装后还需要添加20字节的IP头部，因此UDP数据包的**最大理论长度**实际上是65536 - 8 - 20 = **65508字节**。
+	  * UDP协议定义了一个16位的UDP报文长度字段，这意味着UDP报文的最大长度理论上可以达到2^16 = 65536字节。然而，由于UDP报文头部占用了8字节，且在IP层封装后还需要添加20字节的IP头部，因此UDP数据包的**最大理论长度**实际上是65536 - 8 - 20 = **65508字节**。
 
 * **以太网数据帧的长度限制**
 	*  以太网数据帧的最大传输单元（MTU）通常为1500字节（在以太网II帧结构中，去除DMAC、SMAC、Type、CRC等字段后，实际可用于IP数据报的最大长度为1500字节）。在这个MTU限制下，IP数据报的最大长度不能超过1500字节。由于IP头部占用20字节，UDP头部占用8字节，因此UDP数据报的最大数据区长度通常被限制为1500 - 20 - 8 = **1472字节**。
@@ -132,9 +133,9 @@
   * 由于网络环境的复杂性和不确定性（如不同网络的MTU值可能不同），发送过大的UDP数据包可能会导致数据包分片、传输延迟增加、丢包率上升等问题。一般来说，在Internet上广播时，建议将UDP数据包的大小控制在**548**字节以内（即假设MTU为576字节，减去IP头部和UDP头部的大小），以确保数据包能够顺利传输并减少丢包的风险。
 * 域名解析使用UDP协议时，UDP协议传输内容长度不能超过**512字节**
 
-9 TCP为什么会粘包
+**9 `TCP为什么会粘包`**
 
-  * TCP是一种面向流的传输协议，它不像UDP那样是面向消息的。TCP在传输数据时，会将数据看作一个无边界的字节流，而不是独立的数据包。因此，TCP不保证发送的数据包边界与接收的数据包边界一致，这就可能导致粘包现象的发生。
+  * TCP是一种面向字节流的传输协议，它不像UDP那样是面向消息的。TCP的数据包在从传输层到网络层时，会进行分块，其中的。
 
 
   * tcp采用**滑动窗口**进行流量控制，会导致很多包被一起组合发送
@@ -197,7 +198,6 @@
 		}
 		```
 
-
 * **QScopedPointer**：
 
 	* 提供独占所有权的智能指针，当 `QScopedPointer` 超出作用域时，指向的对象会自动被删除。
@@ -205,27 +205,26 @@
 	* 适用于需要确保对象在特定作用域结束时自动销毁的场景。
 
 		```c++
-			#include <QScopedPointer>
-			
-			class MyObject {
-			public:
-			    MyObject() { qDebug() << "MyObject created"; }
-			    ~MyObject() { qDebug() << "MyObject destroyed"; }
-			    void doSomething() { qDebug() << "Doing something"; }
-			};
-			
-			int main(int argc, char *argv[]) {
-			    QCoreApplication a(argc, argv);
-			
-			    {
-			        QScopedPointer<MyObject> ptr(new MyObject());
-			        ptr->doSomething();
-			    }  // 作用域结束，ptr 自动销毁对象
-			
-			    return a.exec();
-			}
+		#include <QScopedPointer>
+		
+		class MyObject {
+		public:
+		    MyObject() { qDebug() << "MyObject created"; }
+		    ~MyObject() { qDebug() << "MyObject destroyed"; }
+		    void doSomething() { qDebug() << "Doing something"; }
+		};
+		
+		int main(int argc, char *argv[]) {
+		    QCoreApplication a(argc, argv);
+		
+		    {
+		        QScopedPointer<MyObject> ptr(new MyObject());
+		        ptr->doSomething();
+		    }  // 作用域结束，ptr 自动销毁对象
+		
+		    return a.exec();
+		}
 		```
-
 
 * **QPointer**：
 
@@ -233,39 +232,38 @@
 
 	* 适用于需要**跟踪 QObject 对象生命周期**的场景。
 
-			```c++
-			#include <QPointer>
-			#include <QObject>
-			
-			class MyObject : public QObject {
-			    Q_OBJECT
-			public:
-			    MyObject() { qDebug() << "MyObject created"; }
-			    ~MyObject() { qDebug() << "MyObject destroyed"; }
-			    void doSomething() { qDebug() << "Doing something"; }
-			};
-			
-			int main(int argc, char *argv[]) {
-			    QCoreApplication a(argc, argv);
-			
-			    QPointer<MyObject> ptr(new MyObject());
-			
-			    if (ptr) {
-			        ptr->doSomething();
-			    }
-			
-			    delete ptr.data();  // 删除对象，ptr 自动变为 nullptr
-			
-			    if (ptr) {
-			        ptr->doSomething();  // 不会执行，因为 ptr 已经是 nullptr
-			    } else {
-			        qDebug() << "Pointer is null";
-			    }
-			
-			    return a.exec();
-			}
-			```
-
+		```c++
+		#include <QPointer>
+		#include <QObject>
+		
+		class MyObject : public QObject {
+		    Q_OBJECT
+		public:
+		    MyObject() { qDebug() << "MyObject created"; }
+		    ~MyObject() { qDebug() << "MyObject destroyed"; }
+		    void doSomething() { qDebug() << "Doing something"; }
+		};
+		
+		int main(int argc, char *argv[]) {
+		    QCoreApplication a(argc, argv);
+		
+		    QPointer<MyObject> ptr(new MyObject());
+		
+		    if (ptr) {
+		        ptr->doSomething();
+		    }
+		
+		    delete ptr.data();  // 删除对象，ptr 自动变为 nullptr
+		
+		    if (ptr) {
+		        ptr->doSomething();  // 不会执行，因为 ptr 已经是 nullptr
+		    } else {
+		        qDebug() << "Pointer is null";
+		    }
+		
+		    return a.exec();
+		}
+		```
 
 * **std::unique_ptr** (C++11标准库)：
 	* 提供独占所有权的智能指针，确保同一时间只有一个 `std::unique_ptr` 可以指向某个对象，当 `std::unique_ptr` 被销毁时，对象也会被自动删除。
@@ -281,61 +279,69 @@
 
 
 * qt使用多线程一共有两种方式：
+
 	* 通过Qthread创建子类线程，并重写run方法，在run方法中执行需要在新线程运行的代码
+
 	* 通过Qbject派生工作类，用于封装实际的文件发送和接收逻辑，并通过`moveToThread()`将这个类的实例移动到`QThread`中。
-	* 对线程的析构（第一种方法-->**自动析构**）：
-		* 在工作任务结束时发送一个结束信号
-		* 结束信号调用线程 `quit` 结束事件
-		* 然后通过线程发送`finished`信号和 `QObject::deleteLater()`槽函数来确保在线程结束后正确删除线程对象。
+
+* 对线程的析构（第一种方法-->**自动析构**）：
+
+	* 在工作任务结束时发送一个结束信号
+	* 结束信号调用线程 `quit` 结束事件
+	* 然后通过线程发送`finished`信号和 `QObject::deleteLater()`槽函数来确保在线程结束后正确删除线程对象。
 
 
 
 * 线程的析构（第二种方法-->**手动析构**）：
-	* 线程对象在工作完成后调用 `quit()` 退出事件循环，接着调用 `wait()` 等待线程执行完所有的工作。然后手动（`delete`）删除 `QThread` 对象.
 
-	```C++
-	#include <QCoreApplication>
-	#include <QThread>
-	#include <QDebug>
+* 线程对象在工作完成后调用 `quit()` 退出事件循环，接着调用 `wait()` 等待线程执行完所有的工作。然后手动（`delete`）删除 `QThread` 对象.
+
+```C++
+#include <QCoreApplication>
+#include <QThread>
+#include <QDebug>
+
+class Worker : public QObject {
+    Q_OBJECT
+public slots:
+    void doWork() {
+        qDebug() << "Doing work in thread:" << QThread::currentThread();
+        QThread::sleep(2);  // 模拟长时间任务
+        emit workFinished();
+    }
+
+signals:
+    void workFinished();
+};
+
+int main(int argc, char *argv[]) {
+    QCoreApplication a(argc, argv);
+
+    QThread* thread = new QThread;
+    Worker* worker = new Worker;
+
+    worker->moveToThread(thread);
 	
-	class Worker : public QObject {
-	    Q_OBJECT
-	public slots:
-	    void doWork() {
-	        qDebug() << "Doing work in thread:" << QThread::currentThread();
-	        QThread::sleep(2);  // 模拟长时间任务
-	        emit workFinished();
-	    }
-	
-	signals:
-	    void workFinished();
-	};
-	
-	int main(int argc, char *argv[]) {
-	    QCoreApplication a(argc, argv);
-	
-	    QThread* thread = new QThread;
-	    Worker* worker = new Worker;
-	
-	    worker->moveToThread(thread);
-		
-	    // 自动释放析构
-	    QObject::connect(thread, &QThread::started, worker, &Worker::doWork);
-	    QObject::connect(worker, &Worker::workFinished, thread, &QThread::quit);
-	    QObject::connect(thread, &QThread::finished, worker, &QObject::deleteLater);
-	    QObject::connect(thread, &QThread::finished, thread, &QObject::deleteLater);
-	
-	      
-	    thread->start();
-	    //等待线程结束
-	    thread->wait();  // 等待线程执行完所有工作
-	    delete thread;  // 手动删除线程对象
-	    
-	    return a.exec();
-	}
-	```
-	* **不要直接从主线程销毁 `QThread` 对象**：直接调用 `delete` 来销毁正在运行的线程对象是危险的，可能导致未定义行为。最好使用 `quit()` 结束线程的事件循环，然后使用 `wait()` 确保线程退出后再删除对象。
-	* **使用 `moveToThread` 时的注意**：当一个对象被移动到某个线程后，该对象的槽函数会在目标线程中执行。如果目标线程结束，槽函数的执行也会被中止，因此要确保线程生命周期与槽函数的执行周期相匹配。
+    // 自动释放析构
+    QObject::connect(thread, &QThread::started, worker, &Worker::doWork);
+    QObject::connect(worker, &Worker::workFinished, thread, &QThread::quit);
+    QObject::connect(thread, &QThread::finished, worker, &QObject::deleteLater);
+    QObject::connect(thread, &QThread::finished, thread, &QObject::deleteLater);
+	thread->start();
+    //等待线程结束
+    thread->wait();  // 等待线程执行完所有工作
+    delete thread;  // 手动删除线程对象
+    
+    return a.exec();
+}
+```
+
+
+​	      
+
+**不要直接从主线程销毁 `QThread` 对象**：直接调用 `delete` 来销毁正在运行的线程对象是危险的，可能导致未定义行为。最好使用 `quit()` 结束线程的事件循环，然后使用 `wait()` 确保线程退出后再删除对象。
+
+**使用 `moveToThread` 时的注意**：当一个对象被移动到某个线程后，该对象的槽函数会在目标线程中执行。如果目标线程结束，槽函数的执行也会被中止，因此要确保线程生命周期与槽函数的执行周期相匹配。
 
  14 qt信号槽的几种连接方式
 
@@ -512,8 +518,8 @@ if (!sharedMemory.create(1024)) {
 
 **示例：**
 
-```
-cpp复制代码// 服务器端
+```c++
+// 服务器端
 QLocalServer server;
 server.listen("MyLocalServer");
 
@@ -531,7 +537,8 @@ socket.connectToServer("MyLocalServer");
 
 **示例：**
 
-```
+```c++
+cpp复制代码QProcess process;
 process.start("externalApp");
 process.write("input data");
 connect(&process, &QProcess::readyReadStandardOutput, [&]() {
@@ -549,7 +556,7 @@ connect(&process, &QProcess::readyReadStandardOutput, [&]() {
 
 **示例：**
 
-```
+```c++
 // 服务器端
 QTcpServer server;
 connect(&server, &QTcpServer::newConnection, [&]() {
@@ -573,3 +580,43 @@ Qt 提供了多种方式来实现多进程之间的通信，每种方式都有�
 
 
 
+#### 面试2：
+
+nginx服务器怎么部署的
+
+nginx五大功能
+
+多线程同步
+
+怎么理解多态的
+
+网络编程（协议+socket）
+
+FPGA说一下（？老子面的软件鸭）
+
+
+
+#### 面试3：
+
+项目主要的技术难点，怎么解决的;
+2.介绍一下stl（六大组件）;
+3.vector和list的区别（底层和迭代器）;
+4.迭代器什么情况下会失效（原本的空间释放）;
+5.vector扩容和收缩（扩容需要重新拷贝，收缩可以通过resize和swap,但是面试官说是vector主动收缩，不是通过代码去定义）;
+6.什么容器支持键值对（map）
+7.map的所有插入方式（下标，insert，emplace）
+8.Linux内存模型（六个区域）
+9.new和delete原理（operatornew和operatordelete封装）
+10.delete什么情况下析构什么情况下不析构（基本类型和自定义类型）
+11.deletep和delete[]p的区别（释放过程的区别）
+12.不进行delete会怎么办（内存泄露原理）
+13.怎么防止new出来的内存泄露（我说了智能指针，然后分别都介绍了一下）
+14.如果不用delete，有没有其他方法释放那片内存空间（我还是说智能指针，面试官笑了一下😭）
+
+* 智能指针
+* RAII
+	* 通过将资源（如内存、文件句柄等）的获取和释放绑定到对象的构造和析构函数中，可以确保资源在对象销毁时被自动释放，创建一个自定义类，管理动态分配的内存，在析构函数中释放。
+* 标准容器
+	* 在某些情况下，动态内存可以通过标准容器如 `std::vector`、`std::string` 等进行管理，这些容器会自动管理其内部使用的内存。
+
+15.什么情况下deletep和delete[]p是一样的（这个真不知道了，我说除非delete[]p数组是一块完整的线性空间可以当做一个单独变量看待）
