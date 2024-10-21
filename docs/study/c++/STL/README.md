@@ -79,7 +79,7 @@ iterator响应型别：
 
 
 
-### 1.1 ++it和it++哪个好
+### 1.3 ++it和it++哪个好
 
 * ++it返回一个引用，it++返回一个对象
 
@@ -111,7 +111,7 @@ int operator++(){
 
 
 
-### 1.2 return *this:
+### 1.4 return *this:
 
 返回一个指向当前对象的引用能够实现链式操作，是因为通**过引用可以连续调用同一个对象的不同方法，而不需要每次都显式地写出对象的名字。**
 
@@ -398,6 +398,7 @@ for(vector<person>::iterator it = v.begin();it!= v.end();it++){ //每一个容�
 vector<person *> v;
 v.push_back(&p);
 v.push_back(&p1);
+v.emplace_back(str);  // 该函数在vector的末尾直接构造一个新的元素，并将str作为这个新元素的初始值。
 for(vector<person *>::iterator it =v.begin();it!v.end();it++){
 	cout << (*it)->m_name << (*it)->m_age << endl;  //（*it)--->person *p
 }
@@ -1280,7 +1281,9 @@ stack和queue其实都是对deque的另类改装：
 
 #### 4.1.8 heap
 
+* heap不属于STL容器组件，是priority_queue的助手，priority_queue允许用户以任何次序将元素推入容器内，但取出是一定是从优先权最高的元素开始取，binary max heap（大根堆）就是有这样的特性，适合作为priority_queue的底层机制。
 
+* binary heap就是一种完全二叉树，也就说除了叶子节点外，整颗binary heap是填满的，而最底层的叶子节点从左往右不得有孔隙。
 
 
 
@@ -1324,9 +1327,8 @@ set/multiset的**底层实现都是红黑树**，红黑树是平衡二叉树的�
 **set特性：**
 
 * 所有**元素的键值都会自动排序**(从小至大)
-* set的**元素既是键值又是实值**
-	* 其元素都是唯一的，并且只包含一个关键字，这个关键字既是用于排序的依据，也是元素本身的值。也就是说，`set`**中的元素没有与关键字相关联的值（value）**
-
+* set的**元素只有键值**，是一种值的集合。其元素都是唯一的，并且只包含一个关键字，这个关键字既是用于排序的依据，也是元素本身的值。也就是说，`set`**中的元素没有与关键字相关联的值（value）**
+	
 * set**不允许相同的两个键值**
 	* set.count()：查找set中有没有这个元素，要么是0，要么是1
 	* s.insert():插入相同的值会失败
@@ -1336,11 +1338,21 @@ set/multiset的**底层实现都是红黑树**，红黑树是平衡二叉树的�
 			* 所以插入的操作不会提前判断set中有没有相同元素，只有插进去了，会返回对组，其中bool = false;
 * set的iterator是一种const_iterator
 	* **不能通过迭代器修改set元素的值**，因为set元素值就是其键值，关系到set元素的排序规则
+	* set的插入删除操作，不会导致迭代器失效。
 * 对set容器的插入和删除不会影响之前的迭代器。除了被删除的那个
 
 **multiset特性：**
 
 * 和set完全相同，唯一的不同是允许键值重复。
+* 在C++标准库中，`std::set`和`std::map`提供了`insert`成员函数，该函数的行为类似于`insert_unique`，因为它不允许插入重复的元素。
+	* 向`std::set`或`std::map`这样的基于红黑树的容器中插入一个唯一的元素。如果尝试插入的元素已经存在于树中，则插入操作将失败（或返回表示失败的状态，具体取决于实现）。这是通过比较元素的关键字（在`std::map`中是键值对的键，在`std::set`中是元素本身）来实现的。
+
+* 而`std::multiset`和`std::multimap`同样提供了`insert`成员函数，但它们的`insert`操作允许插入重复的元素，因此可以看作是`insert_equal`的实现。
+	* `insert_equal`允许向红黑树（或基于红黑树的容器，如`std::multiset`或`std::multimap`）中插入可能重复的元素。即使元素已经存在于树中，插入操作也会成功，并且树中将包含该元素的多个副本。通常不是二叉搜索树（BST）的标准行为，但红黑树（在`std::multiset`和`std::multimap`的上下文中）通过维护一个**有序的序列**（可能包含重复项）来支持这一点。
+	* 插入重复元素时，并不需要移动已经存在的元素，而是将新元素作为一个新的节点**插入到子树的右节点一直插入重复元素，所有相同值的元素形成一种"链状"结构，主要向右延伸**。通过颜色和旋转调整来确保整棵树保持平衡。这样的处理使得红黑树能够有效地处理包括重复值在内的多种数据，同时维持其对搜索、插入和删除操作的高效率。
+
+
+
 
 **API：**
 
@@ -1394,15 +1406,55 @@ cout << p.first << p.second << endl;
 
 ##### 4.2.2.2 unordered_set/unordered_multiset
 
-底层为**哈希表**。
+* 本质和set功能保持一致，底层为**hash_table**(散列表)，插入删除都是常数级别，但是元素无序。
+
+* 在插入元素时，`unordered_set` 会先计算元素的哈希值，然后在相应的桶中查找该元素。由于 `unordered_set` 中的元素是唯一的，它使用等于比较运算符（`==`）来检查桶中的元素是否与要插入的元素相同。：如果桶中的某个元素与要插入的元素相等，则插入操作会被忽略，因为 `unordered_set` 不允许重复元素。
 
 ```c++
-unordered_set<int,int> us;
+#include<unordered_set>
+
+unordered_set<int> us;
 us.insert(x);
 us.empty(); //判空
 us.insert(5); //插入元素
 us.erase(30); //删除元素值为30的元素
 us.count(30); //0/1
+us.find(30); //插入
+
+  
+int main() {  
+    // 创建一个 unordered_multiset 并初始化  
+    unordered_multiset<int> myUnorededMultiSet = {10, 20, 50, 30, 10, 100, 70, 30, 40};  
+  
+    // 打印所有元素  
+    std::cout << "myMultiSet元素表列:" << std::endl;  
+    for (auto num : myUnorededMultiSet) {  
+        std::cout << num << " ";  
+    }  
+    std::cout << std::endl;  
+  
+    // 查找元素并打印其数量  
+    std::cout << "myUnorededMultiSet.count(100) = " << myUnorededMultiSet.count(100) << std::endl;  
+    std::cout << "myUnorededMultiSet.count(30) = " << myUnorededMultiSet.count(30) << std::endl;  
+  
+    // 查找元素并打印其迭代器  
+    auto it = myUnorededMultiSet.find(20);  
+    if (it != myUnorededMultiSet.end()) {  
+        std::cout << "找到元素: " << *it << std::endl;  
+    } else {  
+        std::cout << "未找到元素" << std::endl;  
+    }  
+  
+    // 使用 equal_range 查找元素范围并打印  
+    auto range = myUnorededMultiSet.equal_range(30);  
+    std::cout << "键 == 30 对应的值:" << std::endl;  
+    for (auto it = range.first; it != range.second; ++it) {  
+        std::cout << *it << " ";  
+    }  
+    std::cout << std::endl;  
+  
+    return 0;  
+}
 ```
 
 
@@ -1429,11 +1481,12 @@ us.count(30); //0/1
 * 键值可重复
 * 适用场景：当需要处理一对一多的数据关系时，可以使用`multimap`。
 
-**unordered_map（hashmap）特性**：
+**unordered_map特性**：
 
-* map与multimap都是存储的key-value的值，可以通过key快速找到value，而unordered_map不会根据key值的大小进行排序。
-* unordered_map内部是无序的，存储时是根据key的hash值判断元素是否相等。
-* unordered_map采用拉链法解决hash冲突。
+* **唯一键**：每个键在`unordered_map`中必须是唯一的。尝试插入一个已存在的键将导致其对应的值被新值替换。
+* map与multimap都是存储的key-value的值，可以通过key快速找到value，而unordered_map不会根据key值的大小进行排序。而是根据键的哈希值分布到不同的桶（bucket）中。这意味着遍历`unordered_map`时，元素的顺序是不确定的。
+* unordered_map内部是**无序的**，存储时是根据key的hash值判断元素是否相等。
+* unordered_map采用**拉链法**解决hash冲突。
 
 **API：**
 
@@ -1464,6 +1517,9 @@ m.equal_range(keyElem); 	// 同时返回容器中key与keyelem相等的上下限
              cout << ret.first->first << ret.first->second << endl;  //返回第一个迭代器 = lower_bound的值
          if(ret.second != s.end())
              cout << ret.second->first << ret.second->second << endl; //返回第二个迭代器 = upper_bound的值
+
+unordered_map<string,vector<string>> mp;
+mp[key].emplace_back(str);		// 在mp这个map中，对于键为key的元素，如果它不存在，则创建一个新的元素（其值为一个空的vector），然后在该vector的末尾添加一个由str初始化的新元素。如果键为key的元素已经存在，则直接在该元素的vector值末尾添加这个新元素。
 ```
 
 **map中[]和find的区别：**
@@ -1473,20 +1529,86 @@ m.equal_range(keyElem); 	// 同时返回容器中key与keyelem相等的上下限
 
 
 
-##### **4.2.2.2 Hashmap**
+##### **4.2.2.2unordered_map**
 
 ![image-20240415202058546](D:/Study_NoteBook/NoteBook/全栈/全栈_C++.assets/image-20240415202058546.png)
 
-* 存储：put()
-* 查询：get()
+KPI:
+
+`unordered_map` 提供了多种成员函数来操作容器中的元素，包括但不限于：
+
+1. 插入操作：
+	* `insert()`：插入一个或多个键值对。
+	* `emplace()`：在容器内部直接构造键值对，避免额外的复制或移动操作。
+	* `emplace_hint()`：使用提示原位构造键值对，可能会提高插入效率。
+	* `try_emplace()`（C++17 引入）：尝试在容器内部直接构造键值对，如果键已存在则不进行插入。
+2. 删除操作：
+	* `erase()`：删除一个或多个键值对，可以通过键、迭代器或迭代器范围来指定要删除的元素。
+	* `clear()`：清空容器中的所有元素。
+3. 查找操作：
+	* `find()`：查找具有特定键的键值对，如果找到则返回指向该键值对的迭代器，否则返回 `end()`。
+	* `count()`：返回匹配特定键的键值对数量（对于 `unordered_map`，这个值要么是 0，要么是 1）。
+	* `operator[]`：通过键访问对应的值，如果键不存在则插入该键并默认构造其值（C++11 引入了 `emplace` 和 `try_emplace` 作为更安全的替代方案）。
+	* `at()`：通过键访问对应的值，如果键不存在则抛出 `std::out_of_range` 异常。
+4. 桶操作（与unordered_set类似）：
+	* `bucket_count()`：返回容器中的桶数。
+	* `bucket_size(n)`：返回第 n 个桶中的元素数。
+	* `bucket(key)`：返回键为 key 的元素所在的桶的索引。
+	* `load_factor()`：返回每个桶的平均元素数（负载因子）。
+	* `max_load_factor()`：返回或设置容器的最大负载因子。
+	* `rehash(n)`：设置桶的数量为 n，并重新哈希。
+	* `reserve(n)`：预留足够的空间来存储 n 个元素，可能会增加桶的数量。
+5. 其他操作：
+	* `size()`：返回容器中的元素数量。
+	* `empty()`：检查容器是否为空。
+	* `swap()`：交换两个 `unordered_map` 的内容。
+	* `get_allocator()`：返回分配器。
+	* `max_size()`：返回容器可以容纳的最大元素个数。
+	* `hash_function()`：返回哈希函数。
+	* `key_eq()`：返回比较键是否相等的函数。
 
 ```c++
-Map<String,int> mp = new Map("zhangsan",18);
+#include <iostream>  
+#include <unordered_map>  
+  
+int main() {  
+    // 创建一个 unordered_map 并初始化  
+    std::unordered_map<int, std::string> um = {{1, "one"}, {2, "two"}, {3, "three"}};  
+  
+    // 插入新的键值对  
+    um[4] = "four";  
+  
+    // 使用键访问值  
+    std::cout << "Key 2: " << um[2] << std::endl;  
+  
+    // 查找键值对  
+    auto it = um.find(3);  
+    if (it != um.end()) {  
+        std::cout << "Found key 3: " << it->second << std::endl;  
+    } else {  
+        std::cout << "Key 3 not found" << std::endl;  
+    }  
+  
+    // 遍历所有键值对  
+    for (const auto& pair : um) {  
+        std::cout << "Key: " << pair.first << ", Value: " << pair.second << std::endl;  
+    }  
+  
+    // 删除键值对  
+    um.erase(2);  
+  
+    // 检查是否删除成功  
+    if (um.find(2) == um.end()) {  
+        std::cout << "Key 2 has been erased" << std::endl;  
+    }  
+  
+    return 0;  
+}
 ```
 
 **存储原理：**
 
-* 底层是数组，有同一键上的的元素用链表链接起来。
+* 底层是哈希表，有同一键上的的元素用链表链接起来。
 	* 当出现一个新结点时，先将key和value封装成一个结点
 	* 再调用key的hashCode方法调用key的哈希码
 	* 再通过哈希函数将hashcode转换为桶的下标
@@ -1502,7 +1624,7 @@ Map<String,int> mp = new Map("zhangsan",18);
 
 
 
-5、stratis                                 
+​                            
 
 ## 5、STL容器汇总
 
@@ -1571,13 +1693,13 @@ list:
 
 * set与map底层都是红黑树，因此插入删除等操作的时间复杂度都在O（logn）内
 
-`td::set`和`std::map`都是STL（Standard Template Library）中的关联容器，它们的主要区别体现在以下几个方面：
+* `td::set`和`std::map`都是STL（Standard Template Library）中的关联容器，它们的主要区别体现在以下几个方面：
 
 1. **存储的数据类型**：
 
-* **实现map的红黑树的节点数据类型是key+value，而实现set的节点数据类型是value**（只有一个值，既是键值又是数据值）。
+* **实现map的红黑树的节点数据类型是key+value，而实现set的节点数据类型是key值。
 	* `std::set`中的元素都是唯一的，并且只包含一个关键字（key），这个关键字既是用于排序的依据，也是元素本身的值。也就是说，`set`中的元素没有与关键字相关联的值（value）。
-	* `std::map`中的元素是键值对（key-value pairs），其中关键字（key）用于排序和索引，而值（value）是与关键字相关联的数据。`map`中的关键字也是唯一的。
+	* `std::map`中的元素是键值对（key-value pairs），其中关键字（key）用于排序和索引，而值（value）是与关键字相关联的数据。`map`中的关键字也是唯一的，但是value值可以重复。
 
 2. **迭代器类型**：
 
