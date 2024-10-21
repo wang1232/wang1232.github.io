@@ -1,14 +1,3 @@
-<!-- tabs:start -->
-#### **微信联系**
-
-#### **QQ联系**
-
-#### **微信联系**
-
-#### **QQ联系**
-
-<!-- tabs:end -->
-
 ## 分布式文件系统
 
 ### 1 FastDFS基本概念
@@ -896,7 +885,7 @@ persist key 				#取消生存时间
 
 #### 3.3 redis配置文件
 
-配置文件时给**redis服务器**使用的
+配置文件是给**redis服务器**使用的
 
 * 配置文件位置：
 	* 源目录-->etc/redis/redis.conf
@@ -3755,5 +3744,453 @@ void Login::on_regButton_clicked()
     });
 
 }
+```
+
+
+
+#### 10.2 用户注册：
+
+**功能需求：**通过用户注册的信息进行数据检验，并进行存储
+
+##### 10.2.1 QT程序开发
+
+* 数据检验：对于用户名、密码、等都需要**正则表达式**进行数据检验
+
+```c++
+#include<QRegExp>
+//2.1构造对象
+QRegExp::QRegExp();												//数据检验类
+QRegExp::QRegExp(const QString &-pattern, Qt::CaseSensitivity cs = Qt::CaseSensitive,
+                     QRegExp::PatternSyntax syntax = RegExp)	//构造函数
+        -pattern：正则表达式
+//2.2使用正则表达式进行数据检验
+bool QRegExp::exactMatch(const QString &str) const				//校验函数
+    -str:要检验的字符串
+    -返回值：匹配成功：true，匹配失败：false
+//3.给正则对象指定匹配规则或者更换匹配规则（用户名、密码等匹配时正则表达式都不同）
+void QRegExp::setPattern(const QString &pattern)
+     -pattern:新的正则表达式
+```
+
+* QT中处理json
+
+```c++
+// QJsonDocument
+// 1. 将字符串-> json对象/数组; 2. json对象,数组 -> 格式化为字符串
+// QJsonObject -> 处理json对象的 {}
+// QJsonArray -> 处理json数组 []
+// QJsonValue -> 包装数据的, 字符串, 布尔, 整形, 浮点型, json对象, json数组
+```
+
+1.内存中的json数据 -> 写磁盘
+
+![image-20241021170311455](FastDFS.assets/image-20241021170311455.png)
+
+
+
+2.磁盘中的json字符串 -> 内存
+
+![image-20241021170327766](FastDFS.assets/image-20241021170327766.png)
+
+
+
+**注册代码：**
+
+```c++
+void login::login_button(){
+	//1.从控件中取出用户输入的数据
+    QString userName = ui->reg_userName->text();
+    QString nickName = ui->reg_nickName->text();
+    QString passwd 	 = ui->reg_passwd->text();
+    QString confirmpd= ui->reg_confirmpd->text();
+    QString email	 = ui->reg_email->text();
+    QString phone	 = ui->reg_phone->text();
+    //2.数据校验：使用正则表达式
+	QRegExp regexp;
+    //检验用户名
+    QString USER_REG = "^[a-zA-Z0-9_@#-\\*]\\{3,16\\}$";  	//正则表达式
+    regexp.setPattern(USER_REG);							//匹配规则
+    bool bl = repexp.exactMatch(userName);
+    if(bl = false){
+        QMessageBox::warning(this,"ERROR","用户名格式不正确");
+        return;
+    }
+    //其他的检验类似
+    
+    
+    //3.用户信息发送给服务器
+    	-->使用http协议进行发送（post）
+        -->数据格式：json格式（json对象或者数组）
+    #include<QNetworkAccessManager>
+    #include<QNetworkRequest>
+    #include<QNetworkReply>
+    #include<QJsonDocument>
+    //创建对象        
+	QNetworkAccessManager * pManager = new QNetworkAccessManager(this);	
+    //request对象
+    QNetworkRequest request;
+    QString url = QString("http://%1:%2//reg").arg(ui->ip->text()).arg(ui->port->text());
+    request.setUrl(url);		//设置http协议格式
+    //描述post数据块的格式:json格式
+    request.setHeader(QNetworkRequest::ContentTypeHeader,"application/json");
+    //将用户提交的数据拼接为josn对象字符串
+    /*# post数据格式
+    {
+        userName :xxxx，
+        nickName :xxx,
+        firstPwd :xxx,
+        phone :xxx,
+        email:xxx
+    }*/
+	QJsonExp obj;//json存放的键值对
+    obj.insert("userName"，userName);
+    obj.insert("nickName"，nickName);
+    obj.insert("firstPwd"，firstPwd;
+    obj.insert("phone"，phone);
+    obj.insert("email"，email);
+    //obj->doc
+    JsonDocument doc(obj);
+   	//obj->qbytearrayy
+    QByteArray json = doc.toJson();
+	QNetworkReply* reply =pManager->post(request,json);
+    
+    //采用post方法发送
+    QNetworkRequest * reply = pManager->post(request,data);		
+
+    
+    //4.接收服务器发送的响应数据
+    connect(reply,&QNetworkReply::readyRead,this,[=](){
+        //5.对服务器响应进行分析处理，成功or失败
+        //5.1 接收数据
+        QByteArray all = reply->readAll();
+        //5.2 需要知道服务器往回发送的字符串的格式 ->解析
+        //qbytearray ->doc
+        QJsonDocument doc =QsonDocument::fromJson(all);
+        // doc -> obj
+        QJsonobject objl= doc.object();
+        myobj.value("code");
+        //5.3 判读成功，失败，给用户提示
+    })   
+}
+```
+
+
+
+##### 10.2.2 nginx配置
+
+**客户端**：
+
+对于客户端来说，当http协议固定好后，请求的URL格式如下：
+
+```nginx
+# URL
+http://192.168.1.100:80/reg# 
+# post数据格式
+{
+    userName :xxxx，
+    nickName :xxx,
+    firstPwd :xxx,
+    phone :xxx,
+    email:xxx
+}
+```
+
+
+
+**服务端-Nginx**
+
+* 转发配置：对于URL解析后的动作进行处理
+
+```nginx
+location /reg
+{
+	#转发数据
+	fastcgi_pass localhost:10000;
+	include fastcgi.conf;
+}
+```
+
+* 编写fastcgi程序：除了nginx的配置还需要配套的cgi程序进行处理
+
+```c++
+int main()
+{
+	while(FCGI_Accept >= 0)
+	{
+		//1.根据content-length得到post的数据长度
+		//2.根据长度将post数据块读到内存
+		//3.解析json对象，得到用户名，密码等
+		//4.连接数据库-mysql
+		//5.查询，看有没有用户名，昵称冲突-->{"code":"003"}
+		//6.有冲突，注册失败
+		//7.没有冲突-用户数据插入到数据库中
+		//8.成功-> 通知客户端-->{"code":"002"}
+        printf("content-type:application/json\r\n");
+        printf("{\"code\":\"002\"}")
+	}
+}
+```
+
+![image-20241021163622185](FastDFS.assets/image-20241021163622185.png)
+
+
+
+
+
+
+
+
+
+
+
+### 11.项目总结
+
+##1. Location语法
+
+1. 语法规则
+
+	```nginx
+	location [=|~|~*|^~] /uri/ 
+	{ 
+	    … 
+	}
+	正则表达式中的特殊字符:
+	- . () {} [] * + ?
+	```
+
+2. Location优先级说明
+
+	- 在nginx的location和配置中location的顺序没有太大关系。
+	- 与location表达式的类型有关。
+	- **相同类型的表达式，字符串长的会优先匹配**。
+
+3. location表达式类型
+
+	- ~ 表示执行一个正则匹配，区分大小写
+
+	- ~* 表示执行一个正则匹配，不区分大小写
+	- ^~  表示普通字符匹配。使用前缀匹配。如果匹配成功，则不再匹配其他location。
+	- = 进行普通字符精确匹配。也就是完全匹配。
+
+4. 匹配模式及优先级顺序(高 -> 低):
+
+	| location = /uri                               | =开头表示精确匹配，只有完全匹配上才能生效。   一旦匹配成功，则不再查找其他匹配项。 |
+	| --------------------------------------------- | ------------------------------------------------------------ |
+	| location ^~ /uri                              | ^~ 开头对URL路径进行前缀匹配，并且在正则之前。   一旦匹配成功，则不再查找其他匹配项。   需要考虑先后顺序, 如:       <http://localhost/helloworld/test/a.html> |
+	| location   ~   pattern   location  ~* pattern | ~  开头表示区分大小写的正则匹配。   ~*开头表示不区分大小写的正则匹配。 |
+	| location /uri                                 | 不带任何修饰符，也表示前缀匹配，但是在正则匹配之后。         |
+	| location   /                                  | 通用匹配，任何未匹配到其它location的请求都会匹配到，相当于switch中的default。 |
+
+	```nginx
+	客户端: http://localhost/helloworld/test/a.html
+	客户端: http://localhost/helloworld/test/
+	/helloworld/test/a.html
+	/helloworld/test/
+	
+	location /
+	{
+	}
+	location /helloworld/
+	{
+	}
+	location /helloworld/test/
+	{
+	}
+	
+	
+	location =/helloworld/test/
+	{
+	    root xxx;
+	}
+	
+	
+	http://localhost/helloworld/test/a.html
+	location ^~ /helloworld/test/
+	{
+	}
+	
+	
+	location ^~ /login/
+	{
+	}
+	http://localhost/helloworld/test/a.JPG
+	location ~* \.[jpg|png]
+	{
+	}
+	
+	http://192.168.1.100/login/hello/world/login.html
+	/login/hello/world/login.html
+	location /
+	{
+	}
+	location /login/
+	{
+	}
+	location /login/hello/
+	{
+	}
+	location /login/hello/world/
+	{
+	}
+	location ~ /group[1-9]/M0[0-9]
+	{
+	}
+	```
+
+	
+
+#### 11.1 项目总结
+
+1. 客户端
+	- Qt
+		- 了解了Qt中http通信
+2. nginx反向代理服务器
+	- 为web服务器服务
+	- web服务器需要集群
+3. web服务器 - nginx
+	- 处理静态请求 - > 访问服务器文件
+	- 动态请求 -> 客户端给服务器提交的数据
+		- 借助fastCGI进行处理
+			- 讲的是单线程处理方式 - API
+			- 也可以多线程处理 -> 另外的API
+			- 使用spawn-fcgi启动
+4. mysql
+	- 关系型数据库 - 服务器端
+	- 存储什么?
+		- 项目中所有用到的数据
+5. redis
+	- 非关系型数据库 - 服务器端使用
+	- 数据默认在内存, 不需要sql语句, 不需要数据库表
+	- 键值对存储, 操作数据使用的是命令
+	- 和关系型数据库配合使用
+	- 存储服务器端经常访问的数据
+6. fastDFS
+	- 分布式文件系统
+	- 追踪器, 存储节点, 客户端
+	- 存储节点的集群
+		- 横向扩容 -> 增加容量
+			- 添加新组, 将新主机放到该组中
+		- 纵向扩容 -> 备份
+			- 将主机放到已经存在的组中
+		- 存储用户上传的所有的文件
+		- 给用户提供下载服务器
+
+#### 11.2 项目提炼
+
+1. 做的是文件服务器
+	- 电商网站
+	- 旅游网站
+	- 租房
+	- 装修公司
+	- 医院
+	- 短视频网站
+2. 需要什么?
+	- 首先需要的是fastDFS
+		- 配置环境
+		- 扩容
+	- 操作fastDFS - 客户端
+		- web
+		- 桌面终端 - Qt
+	- 数据库操作
+		- mysql
+		- oralce
+	- 有一个web服务器 - Nginx
+		- 静态资源部署
+		- 动态请求 - 编写fastCGI程序
+			- 注册
+			- 登录
+			- 上传
+			- 下载
+			- 秒传
+			- 文件列表的获取
+	- redis
+		- 存储服务器访问比较频繁的数据
+
+#### 11.3 存储节点反向代理
+
+```nginx
+上图的反向代理服务器代理的是每个存储节点上部署的Nginx
+	- 每个存储节点上的Nginx的职责: 解析用户的http请求, 帮助用户快速下载文件
+客户端上传了一个文件, 被存储到了fastDFS上, 得到一个文件ID
+	/group1/M00/00/00/wKgfbViy2Z2AJ-FTAaM3Asg3Z0782.mp4"
+因为存储节点有若干个, 所有下载的时候不知道对应的存储节点的访问地址
+给存储节点上的nginx web服务器添加反向代理服务器之后, 下载的访问地址: 
+	- 只需要知道nginx反向代理服务器的地址就可以了: 192.168.31.109
+	- 访问的url: 
+	   http://192.168.31.109/group1/M00/00/00/wKgfbViy2Z2AJ-FTAaM3Asg3Z0782.mp4
+客户端的请求发送给了nginx反向代理服务器
+	- 反向代理服务器不处理请求, 只转发, 转发给存储节点上的nginx服务器
+反向代理服务器的配置 - nginx.conf
+	- 找出处理指令: 去掉协议, iP/域名, 末尾文件名, ?和后边的字符串
+		- /group1/M00/00/00/ - 完整的处理指令 
+	- 添加location
+server{
+	location  /group1/M00 
+    {
+		# 数据转发, 设置转发地址
+    	proxy_pass http://test.com;
+    }
+	location  /group2/M00 
+    {
+		# 数据转发, 设置转发地址
+    	proxy_pass http://test1.com;
+    }
+}
+upstream test.com
+{
+    # fastDFS存储节点的地址, 因为存储节点上安装了nginx, 安装的nginx作为web服务器的角色
+    server 192.168.31.100;
+    server 192.168.31.101;
+    server 192.168.31.102;
+}
+upstream test1.com
+{
+    # fastDFS存储节点的地址, 因为存储节点上安装了nginx, 安装的nginx作为web服务器的角色
+    server 192.168.32.100;
+    server 192.168.33.101;
+    server 192.168.34.102;
+}
+	
+# ===================================
+存储节点上的web服务器的配置
+存储节点1
+    location  /group1/M00 
+    {
+        # 请求处理
+    	root 请求的资源的根目录; // 存储节点的store_path0对应的路径+data
+    	ngx_fastdfs_module;
+    }
+    location  /group1/M01 
+    {
+        # 请求处理
+    	root 请求的资源的根目录;
+    	ngx_fastdfs_module;
+    }
+存储节点2
+	location  /group2/M00 
+    {
+        # 请求处理
+    	root 请求的资源的根目录;
+    	ngx_fastdfs_module;
+    }
+    location  /group2/M01 
+    {
+        # 请求处理
+    	root 请求的资源的根目录;
+    	ngx_fastdfs_module;
+    }
+存储节点3
+	location  /group3/M00 
+    {
+        # 请求处理
+    	root 请求的资源的根目录;
+    	ngx_fastdfs_module;
+    }
+    location  /group3/M01 
+    {
+        # 请求处理
+    	root 请求的资源的根目录;
+    	ngx_fastdfs_module;
+    }
 ```
 
