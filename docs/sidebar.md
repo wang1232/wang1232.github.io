@@ -15,6 +15,7 @@
   * [📁项目](study/project/)
     * [📃FastDFS](study/project/FastDFS/)
     * [📃Sapera Grab Demo二次开发](study/project/Sapera/) 
+    * [📃上位机开发](study/project/Up_monitor/) 
   * [📁WORK](study/other/)
     * [📃CMake](study/other/cmake/)
     * [📃DLL](study/other/DLL/)
