@@ -999,14 +999,6 @@ int main() {
 
 
 
-
-
-
-
-
-
-
-
 ### 1.6 排序算法
 
 ![image-20240918211711232](Leetcodes.assets/image-20240918211711232.png)
@@ -1569,7 +1561,7 @@ public:
 ​	如果 : 窗内元素不满足条件，R向右扩大窗口
 ​	--R到达结尾
 
-```
+```c++
 //代码
 int left, right, result, bestresult; //左指针，右指针，当前结果，最优结果
 //最长
@@ -1606,7 +1598,7 @@ while (右指针没有结尾) {
 
 ### 3、贪心
 
-根据局部最优找到全局最优
+根据局部最优找到全局最优，即最近最优原则。
 
 
 
@@ -1616,7 +1608,7 @@ while (右指针没有结尾) {
 
  **1. 完全二叉树的结点个数**
 
-```
+```c++
 class Solution {
 public:
     int countNodes(TreeNode* root) {
@@ -2407,7 +2399,7 @@ public:
 
 ### 3.2 双指针
 
-#### 3.2.1 移动零
+#### 283. 移动零
 
 给定一个数组 `nums`，编写一个函数将所有 `0` 移动到数组的末尾，同时保持非零元素的相对顺序。
 
@@ -2418,23 +2410,57 @@ public:
 输出: [1,3,12,0,0]
 ```
 
-**我滴暴力：**
+双指针：
 
 ```c++
 class Solution {
 public:
     void moveZeroes(vector<int>& nums) {
-		int first = 0;
-        int second = 1;
-        int len = nums.size();
-		for(int i = 0;i<len;++i){
-            
-        }       
+        int n = nums.size(), left = 0, right = 0;
+        while (right < n) {
+            if (nums[right]!=0) {
+                swap(nums[left], nums[right]);
+                left++;
+            }
+            right++;
+        }
     }
 };
+
 ```
 
 
+
+#### 11. 盛最多水的容器
+
+给定一个长度为 `n` 的整数数组 `height` 。有 `n` 条垂线，第 `i` 条线的两个端点是 `(i, 0)` 和 `(i, height[i])` 。找出其中的两条线，使得它们与 `x` 轴共同构成的容器可以容纳最多的水。返回容器可以储存的最大水量。
+
+![image-20241024155901687](Leetcodes.assets/image-20241024155901687.png)
+
+解题思路：找面积**最大值**
+
+```c++
+class Solution {
+public:
+    int maxArea(vector<int>& height) {
+        int first = 0;
+        int last = height.size()-1;
+        vector<int> v;
+        while(first<last){
+        	int size = (last-first)*(height[first]<height[last]?height[first]:height[last]);
+            v.push_back(size);
+            if (height[first] <= height[last]){
+               first++; 
+            }else{
+                last--;
+            }
+        }
+        sort(v.begin(),v.end());
+        int len = v.size()-1;
+        return v[len];
+    }
+};
+```
 
 
 
@@ -2549,6 +2575,466 @@ public:
         return true;
     }
 };
+```
 
+
+
+#### 141.环形链表
+
+![image-20241023151918145](Leetcodes.assets/image-20241023151918145.png)
+
+**解题核心：**判断unordered_set中有没有和自己一样的元素（**先对比后插入**）。
+
+```c++
+#include<iostream>
+#include<unordered_set>
+using namespace std;
+
+struct ListNode{
+	int val;
+	ListNode *next;
+	ListNode(int x):val(x),next(nullptr){}
+};
+
+class Solution {
+public:
+    bool hasCycle(ListNode *head) {
+        unordered_set<ListNode *> st;
+        ListNode *temp = head;
+        while(temp!=NULL){
+            if(st.count(temp) == 1){
+                return true;
+            }
+            st.insert(temp);
+            temp = temp->next;
+        }
+        return false;
+    }
+};
+```
+
+
+
+#### 21.合并两个有序链表
+
+将两个升序链表合并为一个新的 **升序** 链表并返回。新链表是通过拼接给定的两个链表的所有节点组成的。 
+
+解题核心：**迭代**
+
+```c++
+#include<iostream>
+#include<vector>
+
+using namespace std;
+
+struct ListNode{
+    int val;
+    ListNode *next;
+    ListNode(int x):val(x),next(nullptr){}
+};
+
+class Solution {
+public:
+    ListNode* mergeTwoLists(ListNode* list1, ListNode* list2) {
+		ListNode *pre = new ListNode(0);			//创造一个头节点
+        ListNode *temp = pre;
+        if(list1 == nullptr){
+            return list2;
+        }
+        if(list2 == nullptr){
+            return list1;
+        }
+        while(list1!=NULL && list2!=NULL){
+			if(list1->val<list2->val){
+				temp->next = list1;
+                list1 = list1->next;
+            }else{
+                temp->next = list2;
+                list2 = list2->next;
+            }
+            temp = temp->next;
+        }
+        temp->next = list1 == nullptr ? list2 :list1;
+        
+        return pre->next;
+    }
+};
+```
+
+
+
+#### 2.两数相加
+
+给你两个 **非空** 的链表，表示两个非负的整数。它们每位数字都是按照 **逆序** 的方式存储的，并且每个节点只能存储 **一位** 数字。
+
+请你将两个数相加，并以相同形式返回一个表示和的链表。
+
+你可以假设除了数字 0 之外，这两个数都不会以 0 开头。
+
+![image-20241023172705660](Leetcodes.assets/image-20241023172705660.png)
+
+
+
+```c++
+#include<iostream>
+using namespace std;
+
+struct ListNode{
+    int val;
+    ListNode *next;
+    ListNode(int x):val(x),next(NULL){}
+};
+
+class Solution {
+public:
+    ListNode* addTwoNumbers(ListNode* l1, ListNode* l2) {
+        if(l1 == NULL){
+            return l2;
+        }
+        if(l2 == NULL){
+			return l1;
+        }
+        int count = 0;
+        while(l1!=NULL && l2!=NULL){
+           if((l1->val+l2->val)>=10){
+                int x = (l1->val+l2->val)%10;
+                l1->val = x;
+                count = 1;
+                l1 = l1->next;
+                l2 = l2->next;
+            }
+			if((l1->val+l2->val)<10 && count == 0){
+                l1->val = l1->val+l2->val;
+                l1 = l1->next;
+                l2 = l2->next;
+            }
+            if((l1->val+l2->val)<10 && count == 1){
+                if((l1->val+l2->val+1)==10){
+                	l1->val = 0;
+                	l1 = l1->next;
+                	l2 = l2->next;
+                }else{
+                    l1->val = l1->val+l2->val+1;
+                    l1 = l1->next;
+                    l2 = l2->next;                    
+                }
+            }
+        }
+        return l1;
+    }
+};
+```
+
+
+
+#### 19.删除链表的第N个结点
+
+给你一个链表，删除链表的倒数第 `n` 个结点，并且返回链表的头结点。
+
+```c++
+struct ListNode{
+    int val;
+    ListNode *next;
+    ListNode(int x):val(x),next(nullptr){}
+};
+class Solution {
+public:
+    ListNode* removeNthFromEnd(ListNode* head, int n) {
+        // 虚拟头节点
+        ListNode *test = new ListNode(0);
+        test->next = head;
+        // 链表长度
+        ListNode *pre = head;
+        int count = 1;
+        while(pre->next != NULL){
+            pre = pre->next;
+            count++;
+        }
+        // 开始查找删除
+        ListNode *temp = tes;
+        for(int i = 1;i<count-n+1;++i){
+			temp = temp->next;
+        }
+        temp->next = temp->next->next;
+        delete del_node;
+        return test->next;
+    }
+};
+```
+
+
+
+#### 24. 两两交换节点
+
+给你一个链表，两两交换其中相邻的节点，并返回交换后链表的头节点。你必须在不修改节点内部的值的情况下完成本题（即，只能进行节点交换）。
+
+![image-20241109163645988](Leetcodes.assets/image-20241109163645988.png)
+
+
+
+```c++
+struct ListNode{
+    int val;
+    ListNode *next;
+    ListNode(int x):val(x),next(nullptr){}
+};
+
+class Solution {
+public:
+    ListNode* swapPairs(ListNode* head) {
+        ListNode *dummy= new ListNode(0);
+        dummy->next = head;
+        ListNode *pre = dummy->next; 
+        
+        while(pre&&pre->next != NULL){
+            ListNode *temp_node = node1;
+            node1 = node2;
+            node2 = temp_node;
+			swap(pre,pre->next);
+            pre = pre->next;
+        }
+        return dummy->next;
+    }
+};
+```
+
+
+
+### 3.4 二叉树
+
+#### **94. 二叉树的中序遍历**
+
+给定一个二叉树的根节点 `root` ，返回 *它的 **中序** 遍历* 。
+
+解题核心：**左中右进行递归**。
+
+```c++
+#include<iostream>
+
+struct TreeNode{
+    int val;
+    TreeNode *left;
+    TreeNode *right;
+    TreeNode(int x):val(x),left(NULL),right(NULL){}
+};
+
+class Solution {
+public:
+    void inorder(TreeNode* root,vector<int> &res) {
+        if(!root){
+            return;
+        }
+        inorder(root->left,res);
+        res.push_back(root->val);
+        inorder(root->right,res);
+    }
+    vector<int> inorderTraversal(TreeNode *root){
+        vector<int> v;
+        inorder(root,v);
+        return v;
+    }    
+};
+```
+
+
+
+
+
+#### 104.二叉树的最大深度
+
+给定一个二叉树 `root` ，返回其最大深度。
+
+二叉树的 **最大深度** 是指从根节点到最远叶子节点的最长路径上的节点数。
+
+```c++
+struct TreeNode{
+	int val;
+	TreeNode *left;
+	TreeNode *right;
+	TreeNode(int x):val(x),left(nullptr),right(nullptr){};
+};
+
+class Solution {
+public:
+    int maxDepth(TreeNode* root) {
+        if(root == NULL) return 0;
+    	int lmax = maxDepth(root->left);
+        int rmax = maxDepth(root->right);
+        int max = lmax>rmax?lmax:rmax;
+        return max+1;
+    }
+};
+```
+
+
+
+#### 226.反转二叉树
+
+给你一棵二叉树的根节点 `root` ，翻转这棵二叉树，并返回其根节点。
+
+![image-20241027152518346](Leetcodes.assets/image-20241027152518346.png)
+
+```c++
+struct TreeNode{
+	int val;
+	TreeNode *left;
+	TreeNode *right;
+	TreeNode(int x):val(x),left(nullptr),right(nullptr){}
+};
+class Solution {
+public:
+    TreeNode* invertTree(TreeNode* root) {
+    	TreeNode *temp = new TreeNode(0);
+		temp = root->left;
+		root->left = root->right;
+		root->right = temp;
+        invertTree(root->left);
+        invertTree(root->right);
+        return root;
+    }
+};
+```
+
+
+
+#### 101.对称二叉树
+
+给你一个二叉树的根节点 `root` ， 检查它是否轴对称。
+
+![image-20241027161037501](Leetcodes.assets/image-20241027161037501.png)
+
+```c++
+struct TreeNode{
+	int val;
+    TreeNode *left;
+    TreeNode *right;
+    TreeNode(int x):val(x),left(nullptr),right(nullptr);
+};
+
+class Solution {
+public:
+    //中序遍历:左根右
+    void inorder(TreeNode *root,vector<int> &res){
+        if(!root){
+            res.push_back(101);
+            cout << "101" << endl;
+            return;
+        }
+        if(root->left !=nullptr || root->right !=nullptr){
+            inorder(root->left,res);
+            res.push_back(root->val);
+            cout << root->val << endl;
+            inorder(root->right,res); 
+        }else{
+			res.push_back(root->val);
+            cout << root->val << endl;
+        } 
+    }
+    //右根左
+    void inorder1(TreeNode *root,vector<int> &res){
+        if(!root){
+            res.push_back(101);
+            cout << "101" << endl;
+            return;
+        }
+        if(root->left !=nullptr || root->right !=nullptr){
+            inorder1(root->right,res);
+            res.push_back(root->val);
+            cout << root->val << endl;
+            inorder1(root->left,res);               
+        }else{
+			res.push_back(root->val);
+            cout << root->val << endl;
+        }     
+    }
+    bool isSymmetric(TreeNode* root) {
+        if(root == nullptr) return true;
+        vector<int> v;
+        vector<int> v1;
+        inorder(root,v);
+        cout <<  endl;
+        inorder1(root,v1);
+		for(int i = 0;i<v.size();++i){
+            if(v[i]!=v1[i]) return false;
+        }
+        return true;
+    }
+};
+```
+
+**递归：**
+
+* 两个check是因为一个父节点有两个子节点，分别比较一个父节点的左子节点和另一个父节点的右子节点，比较一个父节点的右子节点和另一个父节点的左子节点（比较值是否相等）
+* 刚开始q和p都指向root
+
+```c++
+class Solution {
+public:
+    bool check(TreeNode *p, TreeNode *q) {
+        if (!p && !q) return true;
+        if (!p || !q) return false;
+        return p->val == q->val && check(p->left, q->right) && check(p->right, q->left);
+    }
+
+    bool isSymmetric(TreeNode* root) {
+        return check(root, root);
+    }
+};
+```
+
+
+
+
+
+#### 543.二叉树的直径
+
+给你一棵二叉树的根节点，返回该树的 **直径** 。
+
+二叉树的 **直径** 是指树中任意两个节点之间最长路径的 **长度** 。这条路径可能经过也可能不经过根节点 `root` 。
+
+两节点之间路径的 **长度** 由它们之间边数表示。
+
+```c++
+struct TreeNode{
+    int val;
+    TreeNode *left;
+    TreeNode *right;
+    TreeNode(int x):val(x),left(nullptr),right(nullptr);
+};
+class Solution {
+public:
+    int diameterOfBinaryTree(TreeNode* root) {
+        
+    }
+};
+```
+
+
+
+### 3.5 滑动窗口
+
+#### 3. 无重复字符的最长子串
+
+给定一个字符串 `s` ，请你找出其中不含有重复字符的 **最长** **子串**的长度。
+
+**示例 1:**
+
+```c++
+输入: s = "abcabcbb"
+输出: 3 
+解释: 因为无重复字符的最长子串是 "abc"，所以其长度为 3。
+```
+
+**代码：**
+
+```c++
+class Solution {
+public:
+    int lengthOfLongestSubstring(string s) {
+		unordered_set<string> st;
+        
+        }
+    }
+};
 ```
 
