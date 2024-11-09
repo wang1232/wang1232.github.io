@@ -2541,7 +2541,7 @@ student *stu1 = dynamic_cast<student>(p) //向下类型转换
 ※左值：能取地址的值；右值：没办法取地址的值。
 
 * 默认构造函数
-* 初始化构造函数（有参）
+* 有参构造函数（有参）
 * 拷贝构造函数(左值引用&)
 * 移动构造函数（move和右值引用&&）
 
@@ -2554,33 +2554,38 @@ public:
     int age;
     int num;
 public:
-    Student(){ //默认构造函数
+    Student(){ //默认无参构造函数
         this->age = 18;
         this->num = 110;
     }
-    Student(int b):	Student(18,110){} //委托构造函数
-    Student(int a,int b):age(a),num(b){} //初始化构造函数 -->同时作为委托的代理构造函数
+    Student(int b):	Student(a,b){} 		// 委托构造函数，这里的a可以赋值也可以直接用代理构造的参数
+    Student(int a,int b):age(a),num(b){} 	// 有参构造列表初始化 -->同时作为委托的代理构造函数
     
     Student(const Student &S){ //拷贝构造函数
 		this->age = S.age;
         this->num = S.age;
     }
+    Student(const Student &S) : age(S.age), num(S.num) {}  // 拷贝构造函数列表初始化
+    
     Student &operator=(const Student &stu){ //拷贝重载运算符，当输入参数为左值时，调用拷贝重载运算符
 		age = stu.age;
         num = stu.num;
         return *this;
     }
     
-    Student(const Student &&s) noexcept{ //移动构造函数->右值引用
-										//移动构造函数一般不应该抛出异常，因为原则上它不应该申领任何资源
+    //移动构造函数一般不应该抛出异常，因为原则上它不应该申领任何资源
+    Student(const Student &&s) noexcept:age(s.age), num(s.num){ //移动构造函数->右值引用
+		s.age = 0; // 可选：将源对象设置为某种“已移动”状态（对于int来说不是必需的）
+        s.num = 0; // 同上							
     }
     Student &operator=(Student &&s) noexcept{//当输入参数为右值时，调用移动赋值运算符
-			if(this == &a)
-                return *this;
-        	age = std::move(s.age);
-        	num = std::move(s.num);
+			if(this ！= &a){
+                age = std::move(s.age);
+                num = std::move(s.num);
+            }
         	return *this;
     }
+    
     Student(int r){ //转换构造函数->单参，且参数类型不同，需要转换
         this->age = r;
         this->num = 11000;
@@ -4853,19 +4858,6 @@ void person::print(){  //通过person类调用student类的print()函数，这�
 		* 纯右值就是临时变量和不跟对象关联的字面量值
 		* 将亡值就是要转移的对象
 
-
-
-## **21.2 i++和++i**
-
-**i++：**
-
-* i++是右值
-	* 在i++操作中，编译器会首先生成一份i的临时拷贝，然后才会对i进行递增，最后返回临时拷贝的资源，这个拷贝是一个临时对象，没有持久的存储位置。
-
-**++i:**
-
-* ++i是左值，直接递增后马上返回其自身
-
 ```c++
 int get_val(){
 	return x;  //右值
@@ -4882,6 +4874,90 @@ int main(){
     set_val(x); //此时的参数val是左值
 }
 ```
+
+
+
+## **21.2 i++和++i**
+
+**i++：**
+
+* i++是右值，返回的是递增前的值的一个临时副本。
+	* 在i++操作中，编译器会首先生成一份i的临时拷贝，然后才会对i进行递增，最后返回临时拷贝的资源，这个拷贝是一个临时对象，没有持久的存储位置。
+
+**++i:**
+
+* ++i是左值， 返回的是递增后的对象的引用
+* **线程安全**：
+	* 对于基本数据类型（int,double），++i不是线程安全的，因为++i实际上是一个复合操作：
+		* 读取 i 的当前值，
+		* 将读取的值加 1。
+		* 将新的值写回 i。
+
+	* 在单线程环境中，对于基本数据类型，C++标准保证了 `++i` 操作的原子性。是线程安全的。
+	* 但在多线程环境中，对共享变量的递增操作（如 `++i`）可能需要使用同步机制（如互斥锁）来确保操作的原子性和正确性。
+
+* **多线程解决线程安全的方案**：
+	* 对于**原子变量**（如 std::atomic<int>），++a 操作是线程安全的。std::atomic 提供了原子操作，确保在一个线程中执行 ++a 时，其他线程不会干扰这个操作。
+	* **加锁**保证线程的同步
+
+
+**重载函数：**
+
+```c++
+//++i实现代码
+int &operator++(){
+	*this +=1;
+	return *this;  	//返回一个指向当前对象的解引用，允许进行链式操作
+}
+//i++实现代码
+int operator++(){
+	int temp = *this;
+	++*this;   		//调用++i
+	return temp;
+}
+```
+
+**单线程执行++i：**线程安全的，在单线程环境中，这些步骤是顺序执行的，并且由于 CPU 的指令执行是线性的，所以这些步骤之间的执行不会被打断。
+
+```c++
+#include<iostream>
+int main(){
+	int a = 0;
+	a++;
+	return 0;
+}
+```
+
+**多线程执行++i：**多线程环境中，多个线程可能会同时访问和修改同一个变量（如共享变量 i），这时如果线程间的操作没有适当的同步，就可能导致数据竞争和不确定的行为。
+
+举例具体来说，如果两个线程几乎同时尝试对同一个变量执行 ++i 操作，那么可能会出现以下情况：
+
+1. 线程1读取了变量 i 的当前值（例如，0）。
+2. 线程2在线程1完成写入新值之前也读取了变量 i 的当前值（仍然是0）。
+3. 线程1对读取的值加1，并将新值（1）写回变量 i。
+4. 线程2也对它读取的值（0）加1，并将新值（1）写回变量 i，从而覆盖了线程1的写入。
+
+```c++
+std::atomic<int> a(0);  						// 使用原子变量也可以保证类型安全
+int a = 0;										
+std::mutex mtx;
+void increment(){
+    for(int i = 0;i<1000000; ++i){
+		std::lock_guard<std::mutex> lock(mtx); 	// 不使用原子操作加锁
+        ++a;
+    }
+}
+int main(){
+    std::thread t1(increment);
+    std::thread t2(increment);
+    
+    t1.join();
+    t2.join();
+    return 0;
+}
+```
+
+
 
 
 
