@@ -12,7 +12,7 @@
 
 * **redis作为mysql的缓存**
 	* 将该用户访问的数据缓存在 Redis 中，这样下一次再访问这些数据的时候就可以直接从缓存中获取了，**操作 Redis 缓存就是直接操作内存，所以速度相当快。**当mysql中的数据改变之后，同步改变redis缓存的数据即可，不过这里会有redis和mysql双写一致性的问题。
-	* **单台设备的 Redis 的 QPS**（Query Per Second，每秒钟处理完请求的次数） **是 MySQL 的 10 倍**，edis 单机的 QPS 能轻松破 10w，而 MySQL 单机的 QPS 很难破 1w。因此访问redis能承受的请求远远大于直接访问mysql的
+	* **单台设备的 Redis 的 QPS**（Query Per Second，每秒钟处理完请求的次数） **是 MySQL 的 10 倍**，Redis 单机的 QPS 能轻松破 10w，而 MySQL 单机的 QPS 很难破 1w。因此访问redis能承受的请求远远大于直接访问mysql的
 
 
 
