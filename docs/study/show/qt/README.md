@@ -359,12 +359,25 @@ MainWindow::~MainWindow()
 
 ## 3 Qt对象模型
 
+### 3.1 对象树
+
 qt的对象都是new出来的，并不用显示的释放delete，这是由于**对象树**的存在。
 
 * Qt中创建对象的时候会提供一个Parent对象指针
 * QObject是以对象树的形式组织起来的
 	* 当你创建一个 QObject对象时，会看到 QObject的构造函数接收一个QObject指针作为参数，这个参数就是parent，也就是父对象指针。这相当于，在创建QObject对象时，可以提供一个其父对象，我们创建的这个QObject,对象会自动添加到其父对象的 children()列表。
 	* 当父对象析构的时候，这个列表中的所有对象也会折构。(注意，这里的父对象并不是继承意义上的父类)中
+
+
+
+### 3.2 Qt元对象系统
+
+元对象系统
+元对象:可以将类中所有的信息全部都保存到这个元对象中
+1.成员变量
+2.成员函数
+
+
 
 
 
@@ -395,12 +408,69 @@ qt的对象都是new出来的，并不用显示的释放delete，这是由于**�
 	void MyClass::on_buttonClicked()  
 	{  
 	    // 处理按钮点击事件  
-	}利用QT编写客户端，采用UDP/TCP通信完成客户端与服务器的数据传输。
+	} 	// 利用QT编写客户端，采用UDP/TCP通信完成客户端与服务器的数据传输。
 	```
 
 
 
-### 4.2 案例
+**信号和槽的本质：**
+
+* 信号和槽机制是Qt实现**事件驱动编程**的一种方式。在传统的回调函数中，你需要将函数指针作为参数传递给另一个函数，并在适当的时候由该函数调用回调函数。而在Qt中，你**不需要显式地传递函数指针，而是通过connect函数将信号和槽连接起来，当信号被触发时，Qt的元对象系统会负责调用相应的槽函数。**这种方式使得代码更加清晰、易于管理。
+
+
+
+**信号和槽的优点：**
+
+* **跨线程通信的能力：**信号和槽机制还支持跨线程通信。当信号和槽分属不同的线程时，Qt会自动处理线程之间的通信问题，确保线程安全。具体来说，如果信号在A线程中发出，而槽在B线程中，**Qt会将信号参数序列化后发送到B线程的事件队列中**，**并在B线程的事件循环中调用槽。**
+
+
+
+
+
+### 4.2 连接方式
+
+
+* 自动连接（Auto Connection）
+
+	```c++
+	connect(sender, SIGNAL(signalName()), receiver, SLOT(slotName()));
+	```
+
+* **直接连接:**槽函数在发送信号的线程中被直接调用。
+
+	```c++
+	connect(sender, SIGNAL(signalName()), receiver, SLOT(slotName()), Qt::DirectConnection);
+	```
+
+* 队列连接:槽函数在接收信号的对象所属的线程中被调用。
+
+	```c++
+	connect(sender, SIGNAL(signalName()), receiver, SLOT(slotName()), Qt::QueuedConnection);
+	```
+
+* 阻塞连接:这是一个特殊的队列连接，发送信号的线程会被阻塞，直到槽函数完成执行。它仅在跨线程通信时使用。适用于需要同步操作的场景
+
+	```c++
+	connect(sender, SIGNAL(signalName()), receiver, SLOT(slotName()), Qt::BlockingQueuedConnection);
+	```
+
+* 唯一连接：这种连接方式确保信号与槽之间的连接唯一，如果已经存在相同的连接，则不会再次连接。有助于避免重复连接的错误。
+
+	```c++
+	connect(sender, SIGNAL(signalName()), receiver, SLOT(slotName()), Qt::UniqueConnection);
+	```
+
+* **Lambda 表达式连接**：可以在需要时内联实现槽函数。
+
+	```c++
+	connect(sender, &Sender::signalName, this, [=]() {
+	    // 这里是槽函数的代码
+	});
+	```
+
+
+
+### 4.3 案例
 
 **案例：**
 
@@ -801,7 +871,7 @@ movie->start();
 
 
 
-### 5.6、控件封装
+### 5.6 控件封装
 
 首先添加新文件
 
@@ -1165,6 +1235,132 @@ bool Widget::eventFilter(QObject *obj,QEvent *e){
     return QWidget::eventFilter(obj,e);
 }
 ```
+
+
+
+## 6 QT智能指针
+
+
+
+### 6.1 **QSharedPointer**：
+
+* 提供共享所有权的智能指针，多个 `QSharedPointer` 可以指向同一个对象，当最后一个 `QSharedPointer` 被销毁时，指向的对象也会被自动删除。
+
+* 适用于需要在多个地方共享一个对象的场景。
+
+	```c++
+	#include <QSharedPointer>
+	
+	class MyObject {
+	public:
+	    MyObject() { qDebug() << "MyObject created"; }
+	    ~MyObject() { qDebug() << "MyObject destroyed"; }
+	    void doSomething() { qDebug() << "Doing something"; }
+	};
+	
+	int main(int argc, char *argv[]) {
+	    QCoreApplication a(argc, argv);
+	
+	    QSharedPointer<MyObject> ptr1(new MyObject());
+	    {
+	        QSharedPointer<MyObject> ptr2 = ptr1;  // 共享对象
+	        ptr2->doSomething();
+	    }  // ptr2 作用域结束，对象并未销毁
+	
+	    ptr1->doSomething();  // ptr1 仍然可以使用对象
+	    // 当 ptr1 作用域结束时，对象才会被销毁
+	    return a.exec();
+	}
+	```
+
+
+
+### 6.2 **QScopedPointer**：
+
+* 提供独占所有权的智能指针，当 `QScopedPointer` 超出作用域时，指向的对象会自动被删除。
+
+* 适用于需要确保对象在特定作用域结束时自动销毁的场景。
+
+	```c++
+	#include <QScopedPointer>
+	
+	class MyObject {
+	public:
+	    MyObject() { qDebug() << "MyObject created"; }
+	    ~MyObject() { qDebug() << "MyObject destroyed"; }
+	    void doSomething() { qDebug() << "Doing something"; }
+	};
+	
+	int main(int argc, char *argv[]) {
+	    QCoreApplication a(argc, argv);
+	
+	    {
+	        QScopedPointer<MyObject> ptr(new MyObject());
+	        ptr->doSomething();
+	    }  // 作用域结束，ptr 自动销毁对象
+	
+	    return a.exec();
+	}
+	```
+
+
+
+### 6.3 **QPointer**：
+
+* 是一个指向 **QObject** 派生类的弱指针，可以用于跟踪 QObject 对象。当 QObject 被销毁时，`QPointer` 会自动将其指针值设置为 `nullptr`，从而避免使用悬空指针。
+
+* 适用于需要**跟踪 QObject 对象生命周期**的场景。
+
+	```c++
+	#include <QPointer>
+	#include <QObject>
+	
+	class MyObject : public QObject {
+	    Q_OBJECT
+	public:
+	    MyObject() { qDebug() << "MyObject created"; }
+	    ~MyObject() { qDebug() << "MyObject destroyed"; }
+	    void doSomething() { qDebug() << "Doing something"; }
+	};
+	
+	int main(int argc, char *argv[]) {
+	    QCoreApplication a(argc, argv);
+	
+	    QPointer<MyObject> ptr(new MyObject());
+	
+	    if (ptr) {
+	        ptr->doSomething();
+	    }
+	
+	    delete ptr.data();  // 删除对象，ptr 自动变为 nullptr
+	
+	    if (ptr) {
+	        ptr->doSomething();  // 不会执行，因为 ptr 已经是 nullptr
+	    } else {
+	        qDebug() << "Pointer is null";
+	    }
+	
+	    return a.exec();
+	}
+	```
+
+
+
+### 6.4 c++指针
+
+* **std::unique_ptr** (C++11标准库)：
+	* 提供独占所有权的智能指针，确保同一时间只有一个 `std::unique_ptr` 可以指向某个对象，当 `std::unique_ptr` 被销毁时，对象也会被自动删除。
+	* 适用于明确需要独占所有权且无需共享的场景。
+
+* **std::shared_ptr** (C++11标准库)：
+
+	* 提供共享所有权的智能指针，多个 `std::shared_ptr` 可以指向同一个对象，并通过引用计数管理对象的生命周期。
+
+	* 适用于跨模块或线程共享对象的场景。
+
+
+
+
 
 
 
@@ -1779,8 +1975,6 @@ qint64 QIODevice::write(const QByteArray &byteArray);
 
 ![image-20240417110823394](QT.assets/image-20240417110823394.png)
 
-![image-20240417110911552](../../image/image-20240417110911552.png)
-
 2、设置监听，由pushButton（连接服务器）按钮跳转槽函数：
 
 ```c++
@@ -1955,10 +2149,10 @@ Widget::Widget(QWidget *parent)
     setWindowTitle("服务器");
 
     //1、创建监听的服务器对象
-    m_s = new QTcpServer(this); //this绑定在当前对象树下，不用指针的管理释放
+    m_s = new QTcpServer(this); // this绑定在当前对象树下，不用指针的管理释放
     //3、判断是否有客户端连接
     connect(m_s,&QTcpServer::newConnection,this,[=](){ //当有客户端连接时发送newConnection信号
-        m_tcp = m_s->nextPendingConnection();  //用匿名函数来获取通信的套接字对象
+        m_tcp = m_s->nextPendingConnection();    	   //用匿名函数来获取通信的套接字对象
 
         //检测是否可以接收数据 ->将接收数据显示在textEdit（通信记录）中
         connect(m_tcp,&QTcpSocket::readyRead,this,[=](){
@@ -2246,7 +2440,68 @@ work->moveToThread(sub);	// 移动到子线程中工作
 * **使用场景**：在Qt的多线程编程中，只有继承了QObject类的对象才能使用moveToThread方法进行线程切换。使用此方法可以使得对象在指定的线程中运行，从而避免在UI线程或其他关键线程中执行耗时的操作。
 * **注意事项**：在执行moveToThread之前，需要确保目标线程已经启动。在目标线程中访问该对象时，通常需要使用信号槽机制或QMetaObject::invokeMethod来进行调用，以确保线程安全。
 
-#### 2.3.2 常用API：
+
+
+#### 2.3.2 QT 线程析构
+
+* 线程的析构（第二种方法-->**手动析构**）：
+
+* 线程对象在工作完成后调用 `quit()` 退出事件循环，接着调用 `wait()` 等待线程执行完所有的工作。然后手动（`delete`）删除 `QThread` 对象.
+
+```C++
+#include <QCoreApplication>
+#include <QThread>
+#include <QDebug>
+
+class Worker : public QObject {
+    Q_OBJECT
+public slots:
+    void doWork() {
+        qDebug() << "Doing work in thread:" << QThread::currentThread();
+        QThread::sleep(2);  // 模拟长时间任务
+        emit workFinished();
+    }
+
+signals:
+    void workFinished();
+};
+
+int main(int argc, char *argv[]) {
+    QCoreApplication a(argc, argv);
+
+    QThread* thread = new QThread;
+    Worker* worker = new Worker;
+
+    worker->moveToThread(thread);
+	
+    // 自动释放析构
+    QObject::connect(thread, &QThread::started, worker, &Worker::doWork);
+    QObject::connect(worker, &Worker::workFinished, thread, &QThread::quit);
+    QObject::connect(thread, &QThread::finished, worker, &QObject::deleteLater);
+    QObject::connect(thread, &QThread::finished, thread, &QObject::deleteLater);
+	thread->start();
+    //等待线程结束
+    thread->wait();  // 等待线程执行完所有工作
+    delete thread;  // 手动删除线程对象
+    
+    return a.exec();
+}
+```
+
+
+​	      
+
+**不要直接从主线程销毁 `QThread` 对象**：直接调用 `delete` 来销毁正在运行的线程对象是危险的，可能导致未定义行为。最好使用 `quit()` 结束线程的事件循环，然后使用 `wait()` 确保线程退出后再删除对象。
+
+**使用 `moveToThread` 时的注意**：当一个对象被移动到某个线程后，该对象的槽函数会在目标线程中执行。如果目标线程结束，槽函数的执行也会被中止，因此要确保线程生命周期与槽函数的执行周期相匹配。
+
+
+
+
+
+
+
+#### 2.3.3 常用API：
 
 **常用共用成员函数：**
 
@@ -2327,7 +2582,7 @@ bool QThread::wait(unsigned long time = ULONG_MAX);
 
 
 
-#### 2.3.3 客户端设计
+#### 2.3.4 客户端设计
 
 1. 首先创建sendfile发送文件类继承自object类
 
@@ -2641,7 +2896,7 @@ void MainWindow::on_pushButton_3_clicked()
 
 
 
-#### 2.3.4  服务器端设计
+#### 2.3.5  服务器端设计
 
 基于子线程去接收文件
 
@@ -2674,9 +2929,230 @@ class MyThread:public QThread
 MyThread * subThread = new MyThread;
 ```
 
-4、启动子线程, 调用 start() 方法
+4、启动子线程, 调用 start() 方法，调用了start方法。就能调用线程种的run()
 
 ```c++
 MyThread * subThread = new MyThread;
 ```
 
+
+
+**界面设计**：监听特定的端口号
+
+![image-20241111211430451](QT.assets/image-20241111211430451.png)
+
+
+
+
+
+**设计流程：**
+
+* 服务端设计recvfile线程来接收文件，因此添加recvfile类文件，因此原本的recvfile类继承自Object，但是作为线程类的话就得继承QThread
+
+![image-20241111201609779](QT.assets/image-20241111201609779.png)
+
+![image-20241111201724061](QT.assets/image-20241111201724061.png)
+
+
+
+
+
+**设计完毕：**
+
+.pro
+
+```c++
+QT       += core gui network
+
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+
+CONFIG += c++17
+
+# You can make your code fail to compile if it uses deprecated APIs.
+# In order to do so, uncomment the following line.
+#DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
+
+SOURCES += \
+    main.cpp \
+    mainwindow.cpp \
+    recvfile.cpp
+
+HEADERS += \
+    mainwindow.h \
+    recvfile.h
+
+FORMS += \
+    mainwindow.ui
+
+# Default rules for deployment.
+qnx: target.path = /tmp/$${TARGET}/bin
+else: unix:!android: target.path = /opt/$${TARGET}/bin
+!isEmpty(target.path): INSTALLS += target
+
+```
+
+recvfile.h:子线程类
+
+```c++
+#ifndef RECVFILE_H
+#define RECVFILE_H
+
+#include <QThread>
+#include <QTcpSocket>
+
+class recvfile : public QThread
+{
+    Q_OBJECT
+public:
+    explicit recvfile(QTcpSocket *tcp,QObject *parent = nullptr);
+    void run() override;
+private:
+    QTcpSocket *m_p;        //类指针用来保存tcp传进来的地址
+signals:
+    void over();            // 信号用来给主线程发送表示数据接收完毕
+
+};
+
+#endif // RECVFILE_H
+
+```
+
+recvfile.cpp
+
+```c++
+#include "recvfile.h"
+#include <QFile>
+recvfile::recvfile(QTcpSocket *tcp,QObject *parent)
+    : QThread{parent}
+{
+    m_p= tcp;   //将tcp保存下来,就能使用用于通信的套接字对象了
+}
+
+//子线程接收数据
+void recvfile::run(){
+    QFile* file = new QFile("recv.txt");
+    file->open(QFile::WriteOnly);
+
+    // 接收数据->当通信套接字发出readyread信号就说明客户端有数据到达了
+    connect(m_p,&QTcpSocket::readyRead,this,[=](){
+        //先读取文件大小->前四个字节
+        static int count = 0;  //static只初始化一次
+        static int total = 0;
+        if(count == 0){         // 当count == 0时，就代表第一次读数据，文件大小为0
+            m_p->read((char*)&total,4); //文件总大小
+        }
+        // 读取剩余数据
+        QByteArray all = m_p->readAll();
+        count += all.size();
+        file->write(all);
+
+        // 判断数据是否接收完毕了
+        if(count == total){
+            m_p->close();
+            m_p->deleteLater();
+            file->close();
+            file->deleteLater();
+            emit over();    // 接收完毕发送over信号给主线程
+        }
+    });
+
+    // 网络通信时，必须在最后调用exec，进入事件循环，保证子线程不退出
+    exec();
+}
+```
+
+
+
+mainwindow.h:主线程类
+
+```c++
+#ifndef MAINWINDOW_H
+#define MAINWINDOW_H
+
+#include <QMainWindow>
+#include <QTcpServer>
+
+QT_BEGIN_NAMESPACE
+namespace Ui { class MainWindow; }
+QT_END_NAMESPACE
+
+class MainWindow : public QMainWindow
+{
+    Q_OBJECT
+
+public:
+    MainWindow(QWidget *parent = nullptr);
+    ~MainWindow();
+
+private slots:
+    void on_pushButton_clicked();  // 监听按钮
+
+private:
+    Ui::MainWindow *ui;
+    QTcpServer *m_s;
+};
+#endif // MAINWINDOW_H
+
+```
+
+mainwindow.cpp
+
+```c++
+#include "mainwindow.h"
+#include "ui_mainwindow.h"
+
+#include <QMessageBox>
+#include <QTcpSocket>
+#include "recvfile.h"
+
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow(parent)
+    , ui(new Ui::MainWindow)
+{
+    ui->setupUi(this);
+
+    m_s = new QTcpServer(this); //实例化 socket tcp对象
+    // 判断是否有客户端连接
+    connect(m_s,&QTcpServer::newConnection,this,[=](){ //当有客户端连接时发送newConnection信号
+        QTcpSocket *tcp = m_s->nextPendingConnection();//用匿名函数来获取通信的套接字对象
+        // 子线程recvfile类开始操作->先将通过连接建立的套接字给子线程，那么子线程就拥有通信套接字->通过参数传递给子线程
+        // 创建线程对象
+        recvfile *subThread  = new recvfile(tcp);
+        subThread->start();     // 启动线程
+        // 访问子线程对象，由于子线程对象在匿名函数里面创建，那么就需要在匿名函数种访问
+        // 当子线程发送over信号，就代表子线程结束了，主线程进行善后
+        connect(subThread,&recvfile::over,this,[=](){
+            subThread->exit();      //子线程退出
+            subThread->wait();
+            subThread->deleteLater();//析构
+            QMessageBox::information(this,"文件接收","文件接收完毕");
+        });
+
+    });
+
+}
+
+MainWindow::~MainWindow()
+{
+    delete ui;
+}
+
+// 监听按钮操作
+void MainWindow::on_pushButton_clicked()
+{
+    unsigned short port = ui->lineEdit->text().toUShort();		// 获取填写的端口
+    m_s->listen(QHostAddress::Any,port);        //绑定本地的任意IP地址，并指定端口8899
+    ui->pushButton->setDisabled(true);			// 点击后变为不可见
+
+}
+```
+
+
+
+
+
+
+
+**调试：**
+
+![image-20241111210746481](QT.assets/image-20241111210746481.png)
