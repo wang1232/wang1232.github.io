@@ -34,6 +34,7 @@
     * [📃MySQL](study/interview/inter_sql/)
     * [📃Redis](study/interview/inter_redis/)
     * [📃C++](study/interview/inter_c++/)  
+    * [📃互感器](study/interview/huganqi/)     
   * [📁毕设](study/transformer/) 
     * [📃DETR](study/transformer/DETR/) 
     * [📃RT-DETR](study/transformer/RT-DETR/)
