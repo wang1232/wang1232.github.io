@@ -25,6 +25,7 @@
     * [📃麒麟系统](study/other/Kylin/) 
     * [📃PostGresSQL](study/other/postgresql/) 
     * [📃Git](study/other/git/)
+    * [📃Git2](study/other/git2/)
   * [📁面试](study/interview/)
     * [📃Fastdfs](study/interview/fastdfs/)
     * [📃interview](study/interview/interview/)
