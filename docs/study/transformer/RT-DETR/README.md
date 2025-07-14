@@ -1,0 +1,2 @@
+<iframe-component src="./src/pdf/10702_2206310838_王雷_基于深度学习的红外微小目标检测方法研究.pdf"></iframe-component>
+<color-tool></color-tool>
