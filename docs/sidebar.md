@@ -27,6 +27,7 @@
     * [📃Nginx](study/other/nginx/) 
     * [📃Git](study/other/git/)
     * [📃Git2](study/other/git2/)
+    * [📃Anaconda3](study/other/anaconda3/)    
   * [📁面试](study/interview/)
     * [📃Fastdfs](study/interview/fastdfs/)
     * [📃interview](study/interview/interview/)
@@ -40,3 +41,4 @@
   * [📁毕设](study/transformer/) 
     * [📃DETR](study/transformer/DETR/) 
     * [📃RT-DETR](study/transformer/RT-DETR/)
+  * [📁Qt专栏](study/Qt/) 
