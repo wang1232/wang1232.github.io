@@ -1,0 +1,96 @@
+<!-- * [**返回主页**](/guide.md) -->
+
+* [**📚学习笔记**](guide.md)
+  * [📁c++](study/c++/)
+    * [📃c++语法](study/c++/c++base/)
+    * [📃线程池](study/c++/threadPool/)
+    * [📃C++网络](study/c++/c++network/)
+    * [📃OpenSSL](study/c++/OpenSSL/)
+    * [📃OpenCV](study/c++/openCv/)
+    * [📃OpenGL](study/c++/openGL/)
+    * [📃QT](study/c++/QT/)
+    * [📃wxWidgets](study/c++/wxWidgets/)
+    * [📃GDB](study/c++/gdb/)
+    * [📃MAKEFILE](study/c++/makefile/)
+    * [📃CMake](study/c++/camke/)
+    * [📃CS106X](study/c++/cs106X/)
+    * [📃C++面试重点](study/c++/ms/)
+    
+  * [📁go](study/go/)
+    * [📃基础学习](study/go/base/) 
+    
+  * [📁AI](study/AI/)
+    * [📃Python](study/AI/python/) 
+    * [📃pytorch](study/AI/pytorch/)
+    * [📃yolo](study/AI/yolo/)
+    * [📃slam](study/AI/slam/)
+    
+  * [📁linux](study/linux/)
+  
+  * [📁docker](study/docker/)
+  
+  * [📁数据库](study/dataBase/)
+    * [📃MySQL](study/dataBase/MySQL/)
+    * [📃redis入门](study/dataBase/redisBase/)
+    * [📃redis实战](study/dataBase/redisApply/)
+    * [📃redis高级](study/dataBase/redisHigh/)
+    * [📃redis集群](study/dataBase/redisGroup/)
+      
+      <!-- * [📁设计模式](study/designPattern/) -->
+    
+  * [📁java](study/java/)
+    * [📃javaweb](study/java/javaweb/)
+    * [📃多线程](study/java/Multithreading/)
+    
+  * [📁web开发](study/web/)
+    * [📃web面试](study/web/web_interview/)
+    * [📃WebPack](study/web/webpack/)
+      * [📄WebPack基础](study/web/webpack/webpack5_base/)
+      * [📄WebPack提高](study/web/webpack/webpack5_senior/)
+      * [📄WebPack项目配置](study/web/webpack/webpack5_project/)
+      * [📄WebPack原理解析](study/web/webpack/webpack5_origin/)
+    
+  * [📁HoloLens](study/HoloLens/)
+  
+* [**🛠️技术博客**](tech)
+  * [📁web](techBlog/web/)
+  * [📁数字孪生](techBlog/digitalTwins/)
+  * [📁服务端](techBlog/server/)
+  * [📁vim](techBlog/vim/)
+  * [📁git](techBlog/git/)
+  * [📁vmware](techBlog/vmware/)
+  * [📁hadoop安装及数组查重](techBlog/hadoop/)
+  * [📁科学上网](techBlog/agent/)
+  * [📁WSL纵享丝滑](techBlog/wsl/)
+  
+* [**⚡好东西tips**](tips)
+  * [📁docsify](tips/docsify/)
+  * [📁Hubilder连接nox](tips/noxHubilder/)
+  * [📁vscode相关技巧](tips/vsCodeTools/)
+  * [📁web显示obj三维模型](tips/webObj/)
+  * [📁好用的小工具](tips/goodTools/)
+  
+* [**🚩项目实战**](projectPractice)
+  * [📁C++Project](projectPractice/cppProject/)
+    * [📃QML实战及其案列](projectPractice/cppProject/QML/)
+    * [📃机房预约系统](projectPractice/cppProject/computerOrder/)
+    * [📃商城分布式文件服务器](projectPractice/cppProject/distributedServerProgramming/)
+    * [📃车载自动化测试平台](projectPractice/cppProject/automatedTestingPlatform/)
+  * [📁数字孪生实例](projectPractice/digitalTwinsProject/)
+    * [📃智慧城市数字孪生平台](projectPractice/digitalTwinsProject/smartCity/)
+  * [📁APP项目](projectPractice/App/)
+    * [📃菜谱APP(可改任意APP)](projectPractice/App/healthApp/)
+  * [📁Golang实战](projectPractice/go/)
+    * [📃即时通信系统](projectPractice/go/instantMesg/)
+  
+* [**🧠算法(ASCII)**](algorithm)
+  
+  * [📁LeetCode](algorithm/leetcode/)
+  
+* [**📞个人联系方式**](onself)
+
+* [**❤️赞赏**](pay)
+
+* [**🔏隐私政策**](privacy)
+
+* [**🖥️关于本站**](about)
