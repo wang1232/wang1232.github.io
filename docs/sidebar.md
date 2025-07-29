@@ -54,3 +54,4 @@
 * [**🛠️上位机专栏**](WORK)
   * [📁Qt专栏](work/Qt/) 
     * [📃测试作业](work/Qt//test/)
+    * [📃曲线图标](work/Qt//graphview/)
