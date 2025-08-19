@@ -287,6 +287,7 @@ void MainWindow::on_btnSelectAll_clicked() {
 // 槽函数：取消选择
 void MainWindow::on_btnDeselectAll_clicked() {
     selectOrDeselectAll(Qt::Unchecked);
+    selectedItems.clear();
 }
 
 // 槽函数：全部展开
