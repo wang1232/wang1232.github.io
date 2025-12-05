@@ -51,12 +51,12 @@
     * [📃DETR](graduate/transformer/DETR/) 
     * [📃RT-DETR](graduate/transformer/RT-DETR/)
 
-* [**🛠️上位机专栏**](WORK)
+* [**🛠️上位机专栏**](work)
   * [📁Qt专栏](work/Qt/) 
     * [📃测试作业](work/Qt/test/)
     * [📃曲线图标](work/Qt/graphview/)
   * [📁总线协议学习](work/protocol/) 
-    * [📃429](work/Qt/429/)
-    * [📃664](work/Qt/664/)
+    * [📃429](work/protocol/429/)
+    * [📃664](work/protocol/664/)
   
 
