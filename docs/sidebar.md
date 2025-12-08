@@ -58,5 +58,8 @@
   * [📁总线协议学习](work/protocol/) 
     * [📃429](work/protocol/429/)
     * [📃664](work/protocol/664/)
+  * [工具安装](work/tools/)
+    * [📃工具安装大全](work/tools/matlab/)
+
   
 
