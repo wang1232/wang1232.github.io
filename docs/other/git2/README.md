@@ -1,4 +1,6 @@
-# 一、github克隆别人的项目给自己
+# 1 github克隆别人的项目给自己 
+
+## 1.1 默认HTTPS 协议链接
 
 1.新建一个仓库：
 
@@ -69,11 +71,101 @@ git push --set-upstream origin master
 出现以下错误：
 ![在这里插入图片描述](GitHub.assets/2db54752b7054852a17508bf5c126cb4.png)
 
-解决方法：git config --global http.sslVerify "false"
+解决方法：
+
+```c++
+git config --global http.sslVerify "false"
+```
 
 
 
-# 二、Typora与GitHub链接
+## 1.2 SSH 协议链接
+
+有时候虽然有梯子，但是git push一直报403的错误，此时使用SSH好于HTTPS
+
+GitHub 同时支持 HTTPS 和 SSH 协议，SSH 协议无需依赖 443 端口，且配置完成后后续无需重复验证，更适合长期使用，步骤如下：
+
+1. **检查本地是否已有 SSH 密钥对**
+
+   打开终端（Windows 用 Git Bash/CMD，Mac/Linux 用终端），执行命令：
+
+   ```
+   ls -la ~/.ssh
+   ```
+
+   若能看到 `id_rsa`（私钥）和 `id_rsa.pub`（公钥），或 `id_ed25519`/`id_ed25519.pub`，说明已有密钥对，直接跳转到步骤 3；若没有，执行步骤 2 生成。
+
+2. **生成 SSH 密钥对**
+
+   执行以下命令（替换为你的 GitHub 注册邮箱），一路回车默认配置即可（无需设置密码，若需要密钥密码可自行输入）：
+
+   ```
+   ssh-keygen -t ed25519 -C "your_email@example.com"
+   ```
+
+   （若系统不支持 ed25519 算法，可使用 `ssh-keygen -t rsa -b 4096 -C "your_email@example.com"`）
+
+3. **复制 SSH 公钥内容**
+
+   先查看公钥文件内容，执行对应命令：
+
+   - 若生成的是 ed25519 密钥：
+
+     ```
+     cat ~/.ssh/id_ed25519.pub
+     ```
+
+   - 若生成的是 rsa 密钥：
+
+     ```
+     cat ~/.ssh/id_rsa.pub
+     ```
+
+   复制终端输出的全部内容（以 `ssh-ed25519` 或 `ssh-rsa` 开头，以你的邮箱结尾）。
+
+4. **在 GitHub 上添加 SSH 公钥**
+
+   1. 登录 GitHub，点击右上角头像 → `Settings` → 左侧导航栏 `SSH and GPG keys` → 点击 `New SSH key`。
+   2. `Title` 可自定义（如「My Laptop」），`Key type` 选择 `Authentication key`。
+   3. 将复制的公钥内容粘贴到 `Key` 输入框中，点击 `Add SSH key` 完成添加。
+
+5. **修改本地 Git 仓库的远程地址为 SSH 格式**
+
+   先查看当前远程地址（确认是 HTTPS 格式）：
+
+   ```c++
+   git remote -v
+   ```
+
+   再删除原有 HTTPS 格式的远程地址，添加 SSH 格式地址（替换为你的仓库地址，可从 GitHub 仓库页面「Code」→「SSH」复制）：
+
+   ```c++
+   # 删除原有远程地址（origin 是远程仓库别名，默认都是 origin）
+   git remote rm origin
+   
+   # 添加 SSH 格式远程地址（示例，替换为你的仓库 SSH 地址）
+   git remote add origin git@github.com:wang1232/work.git
+   ```
+
+6. **验证连接并执行 push**
+
+   先验证 SSH 连接是否成功：
+
+   ```
+   ssh -T git@github.com
+   ```
+
+   首次连接会提示 `Are you sure you want to continue connecting (yes/no)?`，输入 `yes` 回车，若看到 `Hi XXX! You've successfully authenticated` 说明连接成功。
+
+   最后重新执行 push 命令：
+
+   ```c++
+   git push --set-upstream origin master
+   ```
+
+
+
+# 2 Typora与GitHub链接
 
 1、密钥生成
 
@@ -133,7 +225,7 @@ git push
 
 
 
-# 三、vscode与github
+# 3 vscode与github
 
 ```
 git status
@@ -171,7 +263,7 @@ vscode中使用github首先第一步得下载Git，可以自己从官网下载�
 
 
 
-# 四、typora图像格式问题
+# 4 typora图像格式问题
 
 直接处理文件夹下的所有.md文件
 
