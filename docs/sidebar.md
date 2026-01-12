@@ -56,6 +56,7 @@
     * [📃测试作业](work/Qt/test/)
     * [📃曲线图标](work/Qt/graphview/)
     * [📃MDF4](work/Qt/MDF4/)
+    * [📃dll及so封装](work/Qt/DLL/)
   * [📁总线协议学习](work/protocol/) 
     * [📃429](work/protocol/429/)
     * [📃664](work/protocol/664/)
